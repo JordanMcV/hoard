@@ -3,14 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Movies{% endblock %}</title>
+  <title>{% block title %}Hoard{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/">Movies</a>
-    <nav>
+    <div class="topbar-left">
+      <a class="brand" href="/">Hoard</a>
+      <nav class="navlinks">
+        <a href="/" {% if section == 'movies' %}class="active"{% endif %}>Movies</a>
+        <a href="/games" {% if section == 'games' %}class="active"{% endif %}>Games</a>
+      </nav>
+    </div>
+    <nav class="actions">
+      {% if section == 'games' %}
+      <a class="button" href="/games/add">Add game</a>
+      {% else %}
       <a class="button" href="/add">Add movie</a>
+      {% endif %}
     </nav>
   </header>
   <main>

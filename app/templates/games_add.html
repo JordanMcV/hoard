@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Add game{% endblock %}
+{% block content %}
+<h1>Add a game</h1>
+
+{% if igdb_enabled %}
+<form method="get" action="/games/add" class="searchbar">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search IGDB by title" autofocus>
+  <button type="submit">Search</button>
+</form>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+{% if results %}
+<section class="results">
+  {% for r in results %}
+  <article class="result">
+    {% if r.cover_url %}
+    <img src="{{ r.cover_url }}" alt="" loading="lazy">
+    {% else %}
+    <div class="poster-placeholder small"><span>{{ r.title }}</span></div>
+    {% endif %}
+    <div class="result-body">
+      <strong>{{ r.title }}</strong> <span class="muted">{{ r.year or '' }}</span>
+      {% if r.igdb_id | string in owned_ids %}<span class="badge owned">In collection</span>{% endif %}
+      <p class="muted clamp">{{ r.summary or '' }}</p>
+      <form method="post" action="/games/add" class="inline">
+        <input type="hidden" name="igdb_id" value="{{ r.igdb_id }}">
+        <select name="platform">
+          {% for p in platforms %}
+          <option value="{{ p }}">{{ p }}</option>
+          {% endfor %}
+        </select>
+        <select name="store">
+          {% for s in stores %}
+          <option value="{{ s }}" {% if s == 'Physical' %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">Add</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% elif q %}
+<p class="muted">No results for "{{ q }}".</p>
+{% endif %}
+{% else %}
+<p class="notice">IGDB search is off. Set IGDB_CLIENT_ID and IGDB_CLIENT_SECRET in .env to search by title, or add a game manually below.</p>
+{% endif %}
+
+<details class="manual" {% if not igdb_enabled %}open{% endif %}>
+  <summary>Add manually</summary>
+  <form method="post" action="/games/add-manual" class="form">
+    <label>Title <input name="title" required></label>
+    <label>Year <input name="year" type="number" min="1950" max="2100"></label>
+    <label>Platform
+      <select name="platform">
+        {% for p in platforms %}
+        <option value="{{ p }}">{{ p }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Store
+      <select name="store">
+        {% for s in stores %}
+        <option value="{{ s }}" {% if s == 'Other' %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Developer <input name="developer"></label>
+    <label>Notes <textarea name="notes" rows="3"></textarea></label>
+    <button type="submit">Add game</button>
+  </form>
+</details>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ game.title }}{% endblock %}
+{% block content %}
+<article class="detail">
+  <div class="detail-poster">
+    {% if game.cover_file %}
+    <img src="/posters/{{ game.cover_file }}" alt="{{ game.title }} cover">
+    {% else %}
+    <div class="poster-placeholder"><span>{{ game.title }}</span></div>
+    {% endif %}
+  </div>
+  <div class="detail-body">
+    <h1>{{ game.title }} {% if game.year %}<span class="muted">({{ game.year }})</span>{% endif %}</h1>
+    <p class="muted">
+      {% if game.developer %}By {{ game.developer }}.{% endif %}
+      {% if game.genres %}{{ game.genres }}.{% endif %}
+      {% if game.external_source and game.external_source != 'IGDB' %}Synced from {{ game.external_source }}.{% endif %}
+    </p>
+    {% if game.summary %}<p>{{ game.summary }}</p>{% endif %}
+
+    {% if saved %}<p class="notice">Saved.</p>{% endif %}
+
+    <form method="post" action="/games/{{ game.id }}" class="form">
+      <label>Status
+        <select name="status">
+          {% for s in statuses %}
+          <option value="{{ s }}" {% if game.status == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Platform
+        <select name="platform">
+          {% for p in platforms %}
+          <option value="{{ p }}" {% if game.platform == p %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Store
+        <select name="store">
+          {% for s in stores %}
+          <option value="{{ s }}" {% if game.store == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Playtime (minutes)
+        <input name="playtime_minutes" type="number" min="0" value="{{ game.playtime_minutes or '' }}">
+      </label>
+      <label>My rating (1-10)
+        <input name="personal_rating" type="number" min="1" max="10" value="{{ game.personal_rating or '' }}">
+      </label>
+      <label>Notes <textarea name="notes" rows="4">{{ game.notes or '' }}</textarea></label>
+      <button type="submit">Save</button>
+    </form>
+
+    <form method="post" action="/games/{{ game.id }}/delete" onsubmit="return confirm('Delete {{ game.title }} from your collection?')">
+      <button type="submit" class="danger">Delete</button>
+    </form>
+    <p class="muted small">Added {{ game.added_at }} UTC</p>
+  </div>
+</article>
+{% endblock %}

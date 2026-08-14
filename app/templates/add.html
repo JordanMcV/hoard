@@ -21,6 +21,7 @@
     {% endif %}
     <div class="result-body">
       <strong>{{ r.title }}</strong> <span class="muted">{{ r.year or '' }}</span>
+      {% if r.tmdb_id in owned_ids %}<span class="badge owned">In collection</span>{% endif %}
       <p class="muted clamp">{{ r.overview }}</p>
       <form method="post" action="/add" class="inline">
         <input type="hidden" name="tmdb_id" value="{{ r.tmdb_id }}">

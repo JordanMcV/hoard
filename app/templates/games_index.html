@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Games{% endblock %}
+{% block content %}
+{% if msg %}<p class="notice">{{ msg }}</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<section class="toolbar">
+  <form method="get" action="/games" class="filters">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search title or developer">
+    <select name="platform">
+      <option value="">All platforms</option>
+      {% for p in platforms %}
+      <option value="{{ p }}" {% if platform == p %}selected{% endif %}>{{ p }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">Any status</option>
+      {% for s in statuses %}
+      <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+    <select name="sort">
+      <option value="added" {% if sort == 'added' %}selected{% endif %}>Recently added</option>
+      <option value="title" {% if sort == 'title' %}selected{% endif %}>Title</option>
+      <option value="year" {% if sort == 'year' %}selected{% endif %}>Year</option>
+      <option value="rating" {% if sort == 'rating' %}selected{% endif %}>My rating</option>
+      <option value="playtime" {% if sort == 'playtime' %}selected{% endif %}>Playtime</option>
+    </select>
+    <button type="submit">Apply</button>
+  </form>
+  <p class="stats">
+    {{ stats.total }} game{{ '' if stats.total == 1 else 's' }}, {{ stats.backlog }} backlog,
+    {{ stats.completed }} completed, {{ (stats.playtime_minutes / 60) | round | int }}h played
+    · <a href="/random/game">Pick for me</a>
+    · <a href="/export/games.csv">Export CSV</a>
+  </p>
+</section>
+
+{% if steam_enabled or psn_enabled %}
+<section class="syncbar">
+  {% if steam_enabled %}
+  <form method="post" action="/sync/steam"><button type="submit">Sync Steam library</button></form>
+  {% endif %}
+  {% if psn_enabled %}
+  <form method="post" action="/sync/psn"><button type="submit">Sync PSN library</button></form>
+  {% endif %}
+  <span class="muted small">Sync adds new games and refreshes playtime. It never changes your status, rating, or notes.</span>
+</section>
+{% endif %}
+
+{% if games %}
+<section class="grid">
+  {% for g in games %}
+  <a class="card" href="/games/{{ g.id }}">
+    {% if g.cover_file %}
+    <img src="/posters/{{ g.cover_file }}" alt="{{ g.title }} cover" loading="lazy">
+    {% else %}
+    <div class="poster-placeholder"><span>{{ g.title }}</span></div>
+    {% endif %}
+    <div class="card-body">
+      <strong>{{ g.title }}</strong>
+      <span class="muted">{{ g.platform }}{% if g.playtime_minutes %} · {{ (g.playtime_minutes / 60) | round | int }}h{% endif %}</span>
+      <span class="badges">
+        <span class="badge status-{{ g.status | lower }}">{{ g.status }}</span>
+        {% if g.personal_rating %}<span class="badge">{{ g.personal_rating }}/10</span>{% endif %}
+      </span>
+    </div>
+  </a>
+  {% endfor %}
+</section>
+{% else %}
+<section class="empty">
+  <p>No games yet.</p>
+  <a class="button" href="/games/add">Add your first game</a>
+</section>
+{% endif %}
+{% endblock %}

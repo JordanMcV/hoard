@@ -32,6 +32,13 @@ main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
 
 .brand { font-weight: 700; font-size: 1.2rem; color: var(--text); text-decoration: none; }
 
+.topbar-left { display: flex; align-items: center; gap: 1.5rem; }
+.navlinks { display: flex; gap: 1rem; }
+.navlinks a { color: var(--muted); text-decoration: none; padding: 0.25rem 0; }
+.navlinks a.active { color: var(--text); border-bottom: 2px solid var(--accent); }
+.navlinks a:hover { color: var(--text); }
+.actions { display: flex; gap: 0.5rem; }
+
 a.button, button {
   display: inline-block;
   background: var(--accent);
@@ -114,6 +121,22 @@ input, select, textarea {
   color: var(--muted);
 }
 .badge.watched { background: #1f4d2e; color: #9fdcb2; }
+.badge.owned { background: #1f4d2e; color: #9fdcb2; }
+.badge.status-backlog { background: var(--surface-2); color: var(--muted); }
+.badge.status-playing { background: #1d3a5f; color: #9cc3f2; }
+.badge.status-completed { background: #1f4d2e; color: #9fdcb2; }
+.badge.status-dropped { background: #4d2a1f; color: #dcb29f; }
+
+.syncbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.stats a { color: var(--accent); text-decoration: none; }
+.stats a:hover { text-decoration: underline; }
 
 .empty { text-align: center; padding: 4rem 1rem; color: var(--muted); }
 

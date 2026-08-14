@@ -5,3 +5,4 @@ data/
 .env
 _PLAN.md
 _SDD.md
+.DS_Store

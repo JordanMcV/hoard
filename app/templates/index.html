@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% if msg %}<p class="notice">{{ msg }}</p>{% endif %}
 <section class="toolbar">
   <form method="get" action="/" class="filters">
     <input type="search" name="q" value="{{ q }}" placeholder="Search title or director">
@@ -22,7 +23,11 @@
     </select>
     <button type="submit">Apply</button>
   </form>
-  <p class="stats">{{ stats.total }} movie{{ '' if stats.total == 1 else 's' }}, {{ stats.watched }} watched</p>
+  <p class="stats">
+    {{ stats.total }} movie{{ '' if stats.total == 1 else 's' }}, {{ stats.watched }} watched
+    · <a href="/random/movie">Pick for me</a>
+    · <a href="/export/movies.csv">Export CSV</a>
+  </p>
 </section>
 
 {% if movies %}
