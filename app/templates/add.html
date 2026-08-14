@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Add movie{% endblock %}
+{% block content %}
+<h1>Add a movie</h1>
+
+{% if tmdb_enabled %}
+<form method="get" action="/add" class="searchbar">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search TMDB by title" autofocus>
+  <button type="submit">Search</button>
+</form>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+{% if results %}
+<section class="results">
+  {% for r in results %}
+  <article class="result">
+    {% if r.poster_url %}
+    <img src="{{ r.poster_url }}" alt="" loading="lazy">
+    {% else %}
+    <div class="poster-placeholder small"><span>{{ r.title }}</span></div>
+    {% endif %}
+    <div class="result-body">
+      <strong>{{ r.title }}</strong> <span class="muted">{{ r.year or '' }}</span>
+      <p class="muted clamp">{{ r.overview }}</p>
+      <form method="post" action="/add" class="inline">
+        <input type="hidden" name="tmdb_id" value="{{ r.tmdb_id }}">
+        <select name="format">
+          {% for f in formats %}
+          <option value="{{ f }}" {% if f == 'Blu-ray' %}selected{% endif %}>{{ f }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">Add</button>
+      </form>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% elif q %}
+<p class="muted">No results for "{{ q }}".</p>
+{% endif %}
+{% else %}
+<p class="notice">TMDB search is off. Set TMDB_API_KEY in .env to search by title, or add a movie manually below.</p>
+{% endif %}
+
+<details class="manual" {% if not tmdb_enabled %}open{% endif %}>
+  <summary>Add manually</summary>
+  <form method="post" action="/add-manual" class="form">
+    <label>Title <input name="title" required></label>
+    <label>Year <input name="year" type="number" min="1880" max="2100"></label>
+    <label>Format
+      <select name="format">
+        {% for f in formats %}
+        <option value="{{ f }}" {% if f == 'Blu-ray' %}selected{% endif %}>{{ f }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Director <input name="director"></label>
+    <label>Notes <textarea name="notes" rows="3"></textarea></label>
+    <button type="submit">Add movie</button>
+  </form>
+</details>
+{% endblock %}

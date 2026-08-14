@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="toolbar">
+  <form method="get" action="/" class="filters">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search title or director">
+    <select name="format">
+      <option value="">All formats</option>
+      {% for f in formats %}
+      <option value="{{ f }}" {% if format == f %}selected{% endif %}>{{ f }}</option>
+      {% endfor %}
+    </select>
+    <select name="watched">
+      <option value="">Watched and unwatched</option>
+      <option value="1" {% if watched == '1' %}selected{% endif %}>Watched</option>
+      <option value="0" {% if watched == '0' %}selected{% endif %}>Unwatched</option>
+    </select>
+    <select name="sort">
+      <option value="added" {% if sort == 'added' %}selected{% endif %}>Recently added</option>
+      <option value="title" {% if sort == 'title' %}selected{% endif %}>Title</option>
+      <option value="year" {% if sort == 'year' %}selected{% endif %}>Year</option>
+      <option value="rating" {% if sort == 'rating' %}selected{% endif %}>My rating</option>
+    </select>
+    <button type="submit">Apply</button>
+  </form>
+  <p class="stats">{{ stats.total }} movie{{ '' if stats.total == 1 else 's' }}, {{ stats.watched }} watched</p>
+</section>
+
+{% if movies %}
+<section class="grid">
+  {% for m in movies %}
+  <a class="card" href="/movies/{{ m.id }}">
+    {% if m.poster_file %}
+    <img src="/posters/{{ m.poster_file }}" alt="{{ m.title }} poster" loading="lazy">
+    {% else %}
+    <div class="poster-placeholder"><span>{{ m.title }}</span></div>
+    {% endif %}
+    <div class="card-body">
+      <strong>{{ m.title }}</strong>
+      <span class="muted">{{ m.year or '' }} · {{ m.format }}</span>
+      <span class="badges">
+        {% if m.watched %}<span class="badge watched">Watched</span>{% endif %}
+        {% if m.personal_rating %}<span class="badge">{{ m.personal_rating }}/10</span>{% endif %}
+      </span>
+    </div>
+  </a>
+  {% endfor %}
+</section>
+{% else %}
+<section class="empty">
+  <p>No movies yet.</p>
+  <a class="button" href="/add">Add your first movie</a>
+</section>
+{% endif %}
+{% endblock %}

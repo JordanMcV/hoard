@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ movie.title }}{% endblock %}
+{% block content %}
+<article class="detail">
+  <div class="detail-poster">
+    {% if movie.poster_file %}
+    <img src="/posters/{{ movie.poster_file }}" alt="{{ movie.title }} poster">
+    {% else %}
+    <div class="poster-placeholder"><span>{{ movie.title }}</span></div>
+    {% endif %}
+  </div>
+  <div class="detail-body">
+    <h1>{{ movie.title }} {% if movie.year %}<span class="muted">({{ movie.year }})</span>{% endif %}</h1>
+    <p class="muted">
+      {% if movie.director %}Directed by {{ movie.director }}.{% endif %}
+      {% if movie.runtime_minutes %}{{ movie.runtime_minutes }} minutes.{% endif %}
+      {% if movie.genres %}{{ movie.genres }}.{% endif %}
+    </p>
+    {% if movie.overview %}<p>{{ movie.overview }}</p>{% endif %}
+
+    {% if saved %}<p class="notice">Saved.</p>{% endif %}
+
+    <form method="post" action="/movies/{{ movie.id }}" class="form">
+      <label>Format
+        <select name="format">
+          {% for f in formats %}
+          <option value="{{ f }}" {% if movie.format == f %}selected{% endif %}>{{ f }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="check">
+        <input type="hidden" name="watched" value="0">
+        <input type="checkbox" name="watched" value="1" {% if movie.watched %}checked{% endif %}> Watched
+      </label>
+      <label>My rating (1-10)
+        <input name="personal_rating" type="number" min="1" max="10" value="{{ movie.personal_rating or '' }}">
+      </label>
+      <label>Location
+        <select name="location">
+          <option value="">No location</option>
+          {% for loc in locations %}
+          <option value="{{ loc }}" {% if movie.location == loc %}selected{% endif %}>{{ loc }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Notes <textarea name="notes" rows="4">{{ movie.notes or '' }}</textarea></label>
+      <button type="submit">Save</button>
+    </form>
+
+    <form method="post" action="/movies/{{ movie.id }}/delete" onsubmit="return confirm('Delete {{ movie.title }} from your collection?')">
+      <button type="submit" class="danger">Delete</button>
+    </form>
+    <p class="muted small">Added {{ movie.added_at }} UTC</p>
+  </div>
+</article>
+{% endblock %}

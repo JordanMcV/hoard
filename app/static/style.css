@@ -1,0 +1,174 @@
+:root {
+  --bg: #12141a;
+  --surface: #1b1e27;
+  --surface-2: #232734;
+  --text: #e8eaf0;
+  --muted: #9aa1b2;
+  --accent: #5b8def;
+  --danger: #d9534f;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid #2c3040;
+}
+
+.brand { font-weight: 700; font-size: 1.2rem; color: var(--text); text-decoration: none; }
+
+a.button, button {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.95rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button.danger { background: var(--danger); margin-top: 1rem; }
+
+input, select, textarea {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid #333849;
+  border-radius: var(--radius);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.stats { color: var(--muted); margin: 0; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--text);
+  transition: transform 0.1s ease;
+}
+
+.card:hover { transform: translateY(-2px); }
+.card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; }
+
+.poster-placeholder {
+  aspect-ratio: 2 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  color: var(--muted);
+  text-align: center;
+  padding: 0.75rem;
+}
+
+.poster-placeholder.small { width: 92px; flex-shrink: 0; border-radius: var(--radius); }
+
+.card-body { padding: 0.6rem 0.75rem 0.75rem; display: flex; flex-direction: column; gap: 0.15rem; }
+.card-body strong { font-size: 0.95rem; }
+
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+
+.badges { display: flex; gap: 0.35rem; margin-top: 0.25rem; }
+.badge {
+  font-size: 0.75rem;
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  color: var(--muted);
+}
+.badge.watched { background: #1f4d2e; color: #9fdcb2; }
+
+.empty { text-align: center; padding: 4rem 1rem; color: var(--muted); }
+
+.searchbar { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.searchbar input { flex: 1; }
+
+.results { display: flex; flex-direction: column; gap: 0.75rem; }
+.result {
+  display: flex;
+  gap: 1rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+.result img { width: 92px; aspect-ratio: 2 / 3; object-fit: cover; border-radius: var(--radius); flex-shrink: 0; }
+.result-body { flex: 1; min-width: 0; }
+.result-body form.inline { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+
+.clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0.25rem 0 0;
+}
+
+.notice {
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+}
+
+.error {
+  background: #3a2224;
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+}
+
+.manual { margin-top: 1.5rem; }
+.manual summary { cursor: pointer; color: var(--muted); margin-bottom: 0.75rem; }
+
+.form { display: flex; flex-direction: column; gap: 0.75rem; max-width: 420px; margin-top: 1rem; }
+.form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; color: var(--muted); }
+.form label.check { flex-direction: row; align-items: center; gap: 0.5rem; color: var(--text); }
+.form button { align-self: flex-start; }
+
+.detail { display: flex; gap: 2rem; align-items: flex-start; }
+.detail-poster { width: 260px; flex-shrink: 0; }
+.detail-poster img, .detail-poster .poster-placeholder { width: 100%; border-radius: var(--radius); }
+.detail-body { flex: 1; min-width: 0; }
+.detail-body h1 { margin-top: 0; }
+
+@media (max-width: 640px) {
+  .detail { flex-direction: column; }
+  .detail-poster { width: 60%; }
+}
