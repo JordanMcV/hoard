@@ -7,5 +7,5 @@ services:
       - path: .env
         required: false
     volumes:
-      - ./data:/app/data
+      - ${HOARD_DATA:-./data}:/app/data
     restart: unless-stopped
