@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS games (
 );
 """
 
-FORMATS = ["4K UHD", "Blu-ray", "DVD", "Digital", "VHS", "Other"]
+FORMATS = ["4K UHD", "Blu-ray", "DVD", "Digital", "Digital - Remux", "VHS", "Other"]
 
 LOCATIONS = ["Shelf", "Drive"]
 
