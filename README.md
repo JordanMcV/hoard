@@ -1,10 +1,10 @@
 # Hoard
 
-A personal media collection inventory for movies and games. Search TMDB or IGDB by title, add the match to your collection, and track format, status, rating, notes, and location. Cover art is downloaded and stored locally. Steam and PlayStation libraries can be imported with one click.
+A personal media collection inventory for movies and games. Search TMDB or IGDB by title, add the match to your collection, and track medium, quality, status, rating, notes, and location. Cover art is downloaded and stored locally. Steam and PlayStation libraries can be imported with one click.
 
 ## Features
 
-- Movies: TMDB title search, format and location tracking, watched flag, rating, notes.
+- Movies: TMDB title search, Plex library sync, medium and quality tracking, watched flag, rating, notes.
 - Games: IGDB title search, platform and store tracking, status (Backlog, Playing, Completed, Dropped), playtime, rating, notes.
 - Steam sync: imports your library through the official Steam Web API. New games arrive as Backlog. Repeat syncs refresh playtime only.
 - PSN sync: imports played PS3/PS4/PS5 titles through the unofficial PSN API (PSNAWP). Same upsert rules as Steam.

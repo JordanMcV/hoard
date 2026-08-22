@@ -9,7 +9,7 @@ from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import db, igdb, psn, steam, tmdb
+from . import db, igdb, plex, psn, steam, tmdb
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,7 +22,8 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 app.mount("/posters", StaticFiles(directory=db.POSTER_DIR), name="posters")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 templates.env.globals.update(
-    formats=db.FORMATS,
+    mediums=db.MEDIUMS,
+    qualities=db.QUALITIES,
     locations=db.LOCATIONS,
     platforms=db.PLATFORMS,
     stores=db.STORES,
@@ -33,8 +34,9 @@ templates.env.globals.update(
 # Movies
 
 @app.get("/")
-def index(request: Request, q: str = "", format: str = "", watched: str = "", sort: str = "added", msg: str = ""):
-    movies = db.list_movies(q=q, fmt=format, watched=watched, sort=sort)
+def index(request: Request, q: str = "", medium: str = "", quality: str = "", watched: str = "",
+          sort: str = "added", msg: str = "", error: str = ""):
+    movies = db.list_movies(q=q, medium=medium, quality=quality, watched=watched, sort=sort)
     return templates.TemplateResponse(
         request,
         "index.html",
@@ -42,10 +44,13 @@ def index(request: Request, q: str = "", format: str = "", watched: str = "", so
             "movies": movies,
             "stats": db.movie_stats(),
             "q": q,
-            "format": format,
+            "medium": medium,
+            "quality": quality,
             "watched": watched,
             "sort": sort,
             "msg": msg,
+            "error": error,
+            "plex_enabled": plex.enabled(),
             "section": "movies",
         },
     )
@@ -75,9 +80,13 @@ def add_page(request: Request, q: str = ""):
 
 
 @app.post("/add")
-def add_from_tmdb(tmdb_id: int = Form(...), format: str = Form("Blu-ray")):
+def add_from_tmdb(
+    tmdb_id: int = Form(...),
+    medium: str = Form("Blu-ray"),
+    quality: str = Form("Not backed up"),
+):
     details = tmdb.fetch_details(tmdb_id)
-    movie_id = db.add_movie(format=format, **details)
+    movie_id = db.add_movie(medium=medium, quality=quality, **details)
     logger.info("[Movies] Added from TMDB", extra={"tmdb_id": tmdb_id, "movie_id": movie_id})
     return RedirectResponse(f"/movies/{movie_id}", status_code=303)
 
@@ -86,14 +95,16 @@ def add_from_tmdb(tmdb_id: int = Form(...), format: str = Form("Blu-ray")):
 def add_manual(
     title: str = Form(...),
     year: int | None = Form(None),
-    format: str = Form("Blu-ray"),
+    medium: str = Form("Blu-ray"),
+    quality: str = Form("Not backed up"),
     director: str = Form(""),
     notes: str = Form(""),
 ):
     movie_id = db.add_movie(
         title=title.strip(),
         year=year,
-        format=format,
+        medium=medium,
+        quality=quality,
         director=director.strip() or None,
         notes=notes.strip() or None,
     )
@@ -112,10 +123,12 @@ def random_movie():
 def export_movies():
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["title", "year", "format", "director", "genres", "watched", "rating", "location", "notes", "added_at"])
+    writer.writerow(["title", "year", "medium", "quality", "director", "genres", "watched",
+                     "rating", "location", "source", "notes", "added_at"])
     for m in db.list_movies(sort="title"):
-        writer.writerow([m["title"], m["year"], m["format"], m["director"], m["genres"],
-                         m["watched"], m["personal_rating"], m["location"], m["notes"], m["added_at"]])
+        writer.writerow([m["title"], m["year"], m["medium"], m["quality"], m["director"], m["genres"],
+                         m["watched"], m["personal_rating"], m["location"], m["source"],
+                         m["notes"], m["added_at"]])
     return Response(
         buf.getvalue(),
         media_type="text/csv",
@@ -136,7 +149,8 @@ def detail(request: Request, movie_id: int, saved: int = 0):
 @app.post("/movies/{movie_id}")
 def update(
     movie_id: int,
-    format: str = Form("Blu-ray"),
+    medium: str = Form("Blu-ray"),
+    quality: str = Form("Not backed up"),
     watched: str = Form("0"),
     personal_rating: int | None = Form(None),
     location: str = Form(""),
@@ -144,7 +158,8 @@ def update(
 ):
     db.update_movie(
         movie_id,
-        format=format,
+        medium=medium,
+        quality=quality,
         watched=1 if watched == "1" else 0,
         personal_rating=personal_rating,
         location=location.strip() or None,
@@ -255,6 +270,24 @@ def export_games():
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=games.csv"},
     )
+
+
+@app.post("/sync/plex")
+def sync_plex():
+    try:
+        result = plex.sync()
+    except Exception:
+        logger.error("[Movies] Plex sync failed", exc_info=True)
+        return RedirectResponse(
+            "/?error=Plex sync failed. Check PLEX_URL and PLEX_TOKEN.", status_code=303
+        )
+    msg = (
+        f"Plex sync: {result['added']} added, {result['updated']} updated, "
+        f"{result['adopted']} linked, {result['removed']} removed."
+    )
+    if result["unlinked"]:
+        msg += f" {result['unlinked']} hand-added film(s) left Plex and were kept."
+    return RedirectResponse(f"/?msg={msg}", status_code=303)
 
 
 @app.post("/sync/steam")

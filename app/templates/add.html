@@ -25,9 +25,14 @@
       <p class="muted clamp">{{ r.overview }}</p>
       <form method="post" action="/add" class="inline">
         <input type="hidden" name="tmdb_id" value="{{ r.tmdb_id }}">
-        <select name="format">
-          {% for f in formats %}
-          <option value="{{ f }}" {% if f == 'Blu-ray' %}selected{% endif %}>{{ f }}</option>
+<select name="medium">
+          {% for m in mediums %}
+          <option value="{{ m }}" {% if m == 'Blu-ray' %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+        <select name="quality">
+          {% for qu in qualities %}
+          <option value="{{ qu }}" {% if qu == 'Not backed up' %}selected{% endif %}>{{ qu }}</option>
           {% endfor %}
         </select>
         <button type="submit">Add</button>
@@ -48,10 +53,17 @@
   <form method="post" action="/add-manual" class="form">
     <label>Title <input name="title" required></label>
     <label>Year <input name="year" type="number" min="1880" max="2100"></label>
-    <label>Format
-      <select name="format">
-        {% for f in formats %}
-        <option value="{{ f }}" {% if f == 'Blu-ray' %}selected{% endif %}>{{ f }}</option>
+    <label>Medium
+      <select name="medium">
+        {% for m in mediums %}
+        <option value="{{ m }}" {% if m == 'Blu-ray' %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Quality
+      <select name="quality">
+        {% for qu in qualities %}
+        <option value="{{ qu }}" {% if qu == 'Not backed up' %}selected{% endif %}>{{ qu }}</option>
         {% endfor %}
       </select>
     </label>

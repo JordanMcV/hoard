@@ -1,13 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
 {% if msg %}<p class="notice">{{ msg }}</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
 <section class="toolbar">
   <form method="get" action="/" class="filters">
     <input type="search" name="q" value="{{ q }}" placeholder="Search title or director">
-    <select name="format">
-      <option value="">All formats</option>
-      {% for f in formats %}
-      <option value="{{ f }}" {% if format == f %}selected{% endif %}>{{ f }}</option>
+    <select name="medium">
+      <option value="">All media</option>
+      {% for m in mediums %}
+      <option value="{{ m }}" {% if medium == m %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+    <select name="quality">
+      <option value="">All qualities</option>
+      {% for qu in qualities %}
+      <option value="{{ qu }}" {% if quality == qu %}selected{% endif %}>{{ qu }}</option>
       {% endfor %}
     </select>
     <select name="watched">
@@ -30,6 +37,13 @@
   </p>
 </section>
 
+{% if plex_enabled %}
+<section class="syncbar">
+  <form method="post" action="/sync/plex"><button type="submit">Sync Plex library</button></form>
+  <span class="muted small">Sync adds films from Plex and refreshes quality. It removes only films this sync created; anything you added by hand is kept.</span>
+</section>
+{% endif %}
+
 {% if movies %}
 <section class="grid">
   {% for m in movies %}
@@ -41,7 +55,7 @@
     {% endif %}
     <div class="card-body">
       <strong>{{ m.title }}</strong>
-      <span class="muted">{{ m.year or '' }} · {{ m.format }}</span>
+      <span class="muted">{{ m.year or '' }} · {{ m.medium }}{% if m.quality != 'Not backed up' %} · {{ m.quality }}{% endif %}</span>
       <span class="badges">
         {% if m.watched %}<span class="badge watched">Watched</span>{% endif %}
         {% if m.personal_rating %}<span class="badge">{{ m.personal_rating }}/10</span>{% endif %}

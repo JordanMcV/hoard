@@ -21,10 +21,17 @@
     {% if saved %}<p class="notice">Saved.</p>{% endif %}
 
     <form method="post" action="/movies/{{ movie.id }}" class="form">
-      <label>Format
-        <select name="format">
-          {% for f in formats %}
-          <option value="{{ f }}" {% if movie.format == f %}selected{% endif %}>{{ f }}</option>
+      <label>Medium
+        <select name="medium">
+          {% for m in mediums %}
+          <option value="{{ m }}" {% if movie.medium == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Quality
+        <select name="quality">
+          {% for qu in qualities %}
+          <option value="{{ qu }}" {% if movie.quality == qu %}selected{% endif %}>{{ qu }}</option>
           {% endfor %}
         </select>
       </label>
@@ -50,7 +57,9 @@
     <form method="post" action="/movies/{{ movie.id }}/delete" onsubmit="return confirm('Delete {{ movie.title }} from your collection?')">
       <button type="submit" class="danger">Delete</button>
     </form>
-    <p class="muted small">Added {{ movie.added_at }} UTC</p>
+    <p class="muted small">
+      Added {{ movie.added_at }} UTC{% if movie.source %} · from {{ movie.source }}{% endif %}
+    </p>
   </div>
 </article>
 {% endblock %}

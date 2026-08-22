@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS movies (
     tmdb_id INTEGER,
     title TEXT NOT NULL,
     year INTEGER,
-    format TEXT NOT NULL DEFAULT 'Blu-ray',
+    medium TEXT NOT NULL DEFAULT 'Blu-ray',
+    quality TEXT NOT NULL DEFAULT 'Not backed up',
     overview TEXT,
     director TEXT,
     runtime_minutes INTEGER,
@@ -21,6 +22,8 @@ CREATE TABLE IF NOT EXISTS movies (
     personal_rating INTEGER,
     notes TEXT,
     location TEXT,
+    source TEXT,
+    plex_key TEXT,
     added_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -45,7 +48,11 @@ CREATE TABLE IF NOT EXISTS games (
 );
 """
 
-FORMATS = ["4K UHD", "Blu-ray", "DVD", "Digital", "Digital - Remux", "VHS", "Other"]
+# What you physically own.
+MEDIUMS = ["4K UHD Disc", "Blu-ray", "DVD", "VHS", "Digital only", "Other"]
+
+# The best digital copy you hold. "Not backed up" means disc only.
+QUALITIES = ["Not backed up", "4K Remux", "4K", "1080p Remux", "1080p", "720p", "SD"]
 
 LOCATIONS = ["Shelf", "Drive"]
 
@@ -80,9 +87,54 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Bring a pre-split database up to the medium/quality schema."""
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(movies)")}
+    if not cols:
+        return
+    backfill = "medium" not in cols
+
+    if "medium" not in cols:
+        conn.execute("ALTER TABLE movies ADD COLUMN medium TEXT NOT NULL DEFAULT 'Blu-ray'")
+    if "quality" not in cols:
+        conn.execute("ALTER TABLE movies ADD COLUMN quality TEXT NOT NULL DEFAULT 'Not backed up'")
+    if "source" not in cols:
+        conn.execute("ALTER TABLE movies ADD COLUMN source TEXT")
+    if "plex_key" not in cols:
+        conn.execute("ALTER TABLE movies ADD COLUMN plex_key TEXT")
+
+    if backfill and "format" in cols:
+        conn.execute(
+            """
+            UPDATE movies SET
+                medium = CASE
+                    WHEN format = '4K UHD' THEN '4K UHD Disc'
+                    WHEN format IN ('Blu-ray', 'DVD', 'VHS') THEN format
+                    WHEN format LIKE 'Digital%' THEN 'Digital only'
+                    ELSE 'Other'
+                END,
+                quality = CASE
+                    WHEN format LIKE '%Remux%' THEN '4K Remux'
+                    WHEN format LIKE 'Digital%' THEN '1080p'
+                    ELSE 'Not backed up'
+                END
+            """
+        )
+        try:
+            conn.execute("ALTER TABLE movies DROP COLUMN format")
+        except sqlite3.OperationalError:
+            # Older SQLite cannot drop columns. The stale column is harmless.
+            pass
+
+
 def init() -> None:
     with connect() as conn:
         conn.executescript(SCHEMA)
+        _migrate(conn)
+        # After _migrate, so it also covers databases created before plex_key existed.
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_movies_plex_key ON movies(plex_key)"
+        )
 
 
 def _insert(table: str, fields: dict) -> int:
@@ -101,14 +153,17 @@ def _update(table: str, row_id: int, fields: dict) -> None:
 
 # Movies
 
-def list_movies(q: str = "", fmt: str = "", watched: str = "", sort: str = "added") -> list[sqlite3.Row]:
+def list_movies(q: str = "", medium: str = "", quality: str = "", watched: str = "", sort: str = "added") -> list[sqlite3.Row]:
     where, params = [], []
     if q:
         where.append("(title LIKE ? OR director LIKE ?)")
         params += [f"%{q}%", f"%{q}%"]
-    if fmt:
-        where.append("format = ?")
-        params.append(fmt)
+    if medium:
+        where.append("medium = ?")
+        params.append(medium)
+    if quality:
+        where.append("quality = ?")
+        params.append(quality)
     if watched in ("0", "1"):
         where.append("watched = ?")
         params.append(int(watched))
@@ -142,6 +197,30 @@ def movie_tmdb_ids() -> set[int]:
     with connect() as conn:
         rows = conn.execute("SELECT tmdb_id FROM movies WHERE tmdb_id IS NOT NULL").fetchall()
         return {r["tmdb_id"] for r in rows}
+
+
+def movie_plex_keys() -> dict[str, sqlite3.Row]:
+    """Every movie already linked to Plex, keyed by its Plex ratingKey."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT id, plex_key, source FROM movies WHERE plex_key IS NOT NULL"
+        ).fetchall()
+        return {r["plex_key"]: r for r in rows}
+
+
+def movie_ids_by_tmdb() -> dict[int, int]:
+    """Map tmdb_id to movie id, for adopting films already added by hand."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT id, tmdb_id FROM movies WHERE tmdb_id IS NOT NULL AND plex_key IS NULL"
+        ).fetchall()
+        return {r["tmdb_id"]: r["id"] for r in rows}
+
+
+def unlink_plex(movie_id: int) -> None:
+    """Detach a hand-added film from Plex without deleting it."""
+    with connect() as conn:
+        conn.execute("UPDATE movies SET plex_key = NULL WHERE id = ?", (movie_id,))
 
 
 def random_movie_id(unwatched_only: bool = True) -> int | None:
