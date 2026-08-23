@@ -203,7 +203,8 @@ def movie_plex_keys() -> dict[str, sqlite3.Row]:
     """Every movie already linked to Plex, keyed by its Plex ratingKey."""
     with connect() as conn:
         rows = conn.execute(
-            "SELECT id, plex_key, source FROM movies WHERE plex_key IS NOT NULL"
+            "SELECT id, plex_key, source, tmdb_id, poster_file FROM movies "
+            "WHERE plex_key IS NOT NULL"
         ).fetchall()
         return {r["plex_key"]: r for r in rows}
 
@@ -286,6 +287,16 @@ def game_external_ids(source: str) -> set[str]:
             "SELECT external_id FROM games WHERE external_source = ?", (source,)
         ).fetchall()
         return {r["external_id"] for r in rows}
+
+
+def game_rows_by_external(source: str) -> dict[str, sqlite3.Row]:
+    """Known games for a source, keyed by external id, including cover state."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT id, external_id, cover_file FROM games WHERE external_source = ?",
+            (source,),
+        ).fetchall()
+        return {r["external_id"]: r for r in rows}
 
 
 def update_game_by_external(source: str, external_id: str, **fields) -> None:

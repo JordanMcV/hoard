@@ -3,7 +3,7 @@ import os
 
 import httpx
 
-from . import db, tmdb
+from . import db, retry, tmdb
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,8 @@ def enabled() -> bool:
 
 
 def _get(client: httpx.Client, path: str, params: dict | None = None) -> dict:
-    resp = client.get(
+    resp = retry.get(
+        client,
         f"{base_url()}{path}",
         params={**(params or {}), "X-Plex-Token": token()},
         headers={"Accept": "application/json"},
@@ -74,7 +75,7 @@ def sync() -> dict:
     removes films that have left Plex. Only rows this sync created are ever deleted;
     films added by hand are unlinked instead.
     """
-    added = updated = adopted = removed = unlinked = 0
+    added = updated = adopted = removed = unlinked = posters_backfilled = 0
 
     with httpx.Client() as client:
         sections = _movie_sections(_get(client, "/library/sections"))
@@ -95,7 +96,22 @@ def sync() -> dict:
                 quality = _classify(item)
 
                 if plex_key in known:
-                    db.update_movie(known[plex_key]["id"], quality=quality)
+                    row = known[plex_key]
+                    fields = {"quality": quality}
+                    if not row["poster_file"] and row["tmdb_id"] and tmdb.enabled():
+                        # A poster that failed earlier is retried, not written off.
+                        try:
+                            poster = tmdb.fetch_details(row["tmdb_id"])["poster_file"]
+                            if poster:
+                                fields["poster_file"] = poster
+                                posters_backfilled += 1
+                        except httpx.HTTPError:
+                            logger.warning(
+                                "[Movies] Poster backfill failed",
+                                extra={"tmdb_id": row["tmdb_id"], "plex_key": plex_key},
+                                exc_info=True,
+                            )
+                    db.update_movie(row["id"], **fields)
                     updated += 1
                     continue
 
@@ -146,6 +162,7 @@ def sync() -> dict:
         "adopted": adopted,
         "removed": removed,
         "unlinked": unlinked,
+        "posters_backfilled": posters_backfilled,
     }
     logger.info("[Movies] Plex sync finished", extra=result)
     return result

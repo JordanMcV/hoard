@@ -3,7 +3,7 @@ import os
 
 import httpx
 
-from . import db
+from . import db, retry
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def _download_cover(client: httpx.Client, title_id: str, image_url: str | None) 
     if target.exists():
         return cover_file
     try:
-        resp = client.get(image_url, timeout=30)
+        resp = retry.get(client, image_url, timeout=30)
         resp.raise_for_status()
         target.write_bytes(resp.content)
         return cover_file
@@ -45,8 +45,8 @@ def sync() -> dict:
     psnawp = PSNAWP(os.environ["PSN_NPSSO"].strip())
     me = psnawp.me()
 
-    existing = db.game_external_ids("PSN")
-    added = updated = 0
+    existing = db.game_rows_by_external("PSN")
+    added = updated = covers_backfilled = 0
     with httpx.Client() as client:
         for title in me.title_stats():
             title_id = title.title_id
@@ -54,7 +54,13 @@ def sync() -> dict:
             if getattr(title, "play_duration", None):
                 minutes = int(title.play_duration.total_seconds() // 60) or None
             if title_id in existing:
-                db.update_game_by_external("PSN", title_id, playtime_minutes=minutes)
+                fields = {"playtime_minutes": minutes}
+                if not existing[title_id]["cover_file"]:
+                    cover = _download_cover(client, title_id, getattr(title, "image_url", None))
+                    if cover:
+                        fields["cover_file"] = cover
+                        covers_backfilled += 1
+                db.update_game_by_external("PSN", title_id, **fields)
                 updated += 1
             else:
                 db.add_game(
@@ -68,5 +74,6 @@ def sync() -> dict:
                 )
                 added += 1
 
-    logger.info("[Games] PSN sync finished", extra={"added": added, "updated": updated})
-    return {"added": added, "updated": updated}
+    result = {"added": added, "updated": updated, "covers_backfilled": covers_backfilled}
+    logger.info("[Games] PSN sync finished", extra=result)
+    return result

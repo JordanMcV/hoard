@@ -3,7 +3,7 @@ import os
 
 import httpx
 
-from . import db
+from . import db, retry
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def _request(client: httpx.Client, path: str, params: dict | None = None) -> dic
         headers["Authorization"] = f"Bearer {key}"
     else:
         params["api_key"] = key
-    resp = client.get(f"{API_BASE}{path}", params=params, headers=headers, timeout=15)
+    resp = retry.get(client, f"{API_BASE}{path}", params=params, headers=headers, timeout=15)
     resp.raise_for_status()
     return resp.json()
 
@@ -61,7 +61,7 @@ def fetch_details(tmdb_id: int) -> dict:
             target = db.POSTER_DIR / poster_file
             if not target.exists():
                 try:
-                    img = client.get(f"{IMAGE_BASE}{data['poster_path']}", timeout=30)
+                    img = retry.get(client, f"{IMAGE_BASE}{data['poster_path']}", timeout=30)
                     img.raise_for_status()
                     target.write_bytes(img.content)
                 except httpx.HTTPError:

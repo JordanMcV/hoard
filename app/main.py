@@ -287,6 +287,8 @@ def sync_plex():
     )
     if result["unlinked"]:
         msg += f" {result['unlinked']} hand-added film(s) left Plex and were kept."
+    if result["posters_backfilled"]:
+        msg += f" {result['posters_backfilled']} missing poster(s) retrieved."
     return RedirectResponse(f"/?msg={msg}", status_code=303)
 
 
@@ -297,9 +299,10 @@ def sync_steam():
     except Exception:
         logger.error("[Games] Steam sync failed", exc_info=True)
         return RedirectResponse("/games?error=Steam sync failed. Check STEAM_API_KEY and STEAM_ID.", status_code=303)
-    return RedirectResponse(
-        f"/games?msg=Steam sync: {result['added']} added, {result['updated']} updated.", status_code=303
-    )
+    msg = f"Steam sync: {result['added']} added, {result['updated']} updated."
+    if result["covers_backfilled"]:
+        msg += f" {result['covers_backfilled']} missing cover(s) retrieved."
+    return RedirectResponse(f"/games?msg={msg}", status_code=303)
 
 
 @app.post("/sync/psn")
@@ -312,9 +315,10 @@ def sync_psn():
             "/games?error=PSN sync failed. The NPSSO token may have expired; get a fresh one and update .env.",
             status_code=303,
         )
-    return RedirectResponse(
-        f"/games?msg=PSN sync: {result['added']} added, {result['updated']} updated.", status_code=303
-    )
+    msg = f"PSN sync: {result['added']} added, {result['updated']} updated."
+    if result["covers_backfilled"]:
+        msg += f" {result['covers_backfilled']} missing cover(s) retrieved."
+    return RedirectResponse(f"/games?msg={msg}", status_code=303)
 
 
 @app.get("/games/{game_id}")
