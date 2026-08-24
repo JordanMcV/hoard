@@ -17,6 +17,7 @@ body {
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
 }
 
 main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
@@ -90,7 +91,9 @@ input, select, textarea {
   transition: transform 0.1s ease;
 }
 
-.card:hover { transform: translateY(-2px); }
+@media (hover: hover) {
+  .card:hover { transform: translateY(-2px); }
+}
 .card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; }
 
 .poster-placeholder {
@@ -107,7 +110,8 @@ input, select, textarea {
 .poster-placeholder.small { width: 92px; flex-shrink: 0; border-radius: var(--radius); }
 
 .card-body { padding: 0.6rem 0.75rem 0.75rem; display: flex; flex-direction: column; gap: 0.15rem; }
-.card-body strong { font-size: 0.95rem; }
+.card-body strong { font-size: 0.95rem; overflow-wrap: anywhere; }
+.card-body .muted { overflow-wrap: anywhere; }
 
 .muted { color: var(--muted); }
 .small { font-size: 0.85rem; }
@@ -192,6 +196,63 @@ input, select, textarea {
 .detail-body h1 { margin-top: 0; }
 
 @media (max-width: 640px) {
+  main { padding: 1rem; }
+  .topbar { padding: 0.75rem 1rem; }
+  .topbar-left { gap: 1rem; }
+
+  /* Safari zooms the whole page when a focused control is under 16px. */
+  input, select, textarea { font-size: 16px; }
+
+  /* Touch targets. 44px is the smallest comfortable tap area. */
+  a.button, button {
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+    font-size: 1rem;
+  }
+  .navlinks a { padding: 0.5rem 0; }
+  .stats a { display: inline-block; padding: 0.25rem 0; }
+
+  /* Filters wrapped into ragged rows sized to their content. Lay them out
+     two per row instead, with the search box and Apply button full width. */
+  .toolbar { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .filters input[type="search"],
+  .filters button { grid-column: 1 / -1; }
+  .filters select { width: 100%; min-width: 0; }
+
+  /* At 375px the 160px minimum left room for only one column. */
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .syncbar > form, .syncbar > form button { width: 100%; }
+
+  .searchbar { flex-wrap: wrap; }
+  .searchbar input { flex: 1 1 100%; }
+  .searchbar button { width: 100%; }
+
+  /* Two selects and a button no longer fit on one line. */
+  .result-body form.inline { flex-wrap: wrap; }
+  .result-body form.inline select { flex: 1 1 calc(50% - 0.25rem); min-width: 0; }
+  .result-body form.inline button { width: 100%; }
+  .result img, .poster-placeholder.small { width: 72px; }
+
   .detail { flex-direction: column; }
-  .detail-poster { width: 60%; }
+  .detail-poster { width: 100%; max-width: 220px; margin: 0 auto; }
+
+  .form { max-width: none; }
+  .form button { align-self: stretch; }
+}
+
+/* iPhone SE and similar. At 320px the 1rem padding left 288px, four short of
+   the 292px two columns need. */
+@media (max-width: 360px) {
+  main { padding: 0.75rem; }
+  .topbar { padding: 0.75rem; }
+  .topbar-left { gap: 0.75rem; }
 }
