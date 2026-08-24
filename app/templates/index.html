@@ -4,6 +4,7 @@
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
 <section class="toolbar">
   <form method="get" action="/" class="filters">
+    <input type="hidden" name="view" value="{{ view }}">
     <input type="search" name="q" value="{{ q }}" placeholder="Search title or director">
     <select name="medium">
       <option value="">All media</option>
@@ -30,6 +31,10 @@
     </select>
     <button type="submit">Apply</button>
   </form>
+  <div class="viewtoggle" role="group" aria-label="View">
+    <a href="{{ view_urls.grid }}" {% if view != 'list' %}class="active" aria-current="true"{% endif %}>Gallery</a>
+    <a href="{{ view_urls.list }}" {% if view == 'list' %}class="active" aria-current="true"{% endif %}>List</a>
+  </div>
   <p class="stats">
     {{ stats.total }} movie{{ '' if stats.total == 1 else 's' }}, {{ stats.watched }} watched
     · <a href="/random/movie">Pick for me</a>
@@ -44,7 +49,29 @@
 </section>
 {% endif %}
 
-{% if movies %}
+{% if movies and view == 'list' %}
+<section class="list">
+  {% for m in movies %}
+  <a class="row" href="/movies/{{ m.id }}">
+    {% if m.poster_file %}
+    <img src="/posters/{{ m.poster_file }}" alt="" loading="lazy">
+    {% else %}
+    <span class="row-thumb"></span>
+    {% endif %}
+    <span class="row-main">
+      <strong>{{ m.title }}</strong>
+      <span class="muted small">
+        {{ m.year or '' }} · {{ m.medium }}{% if m.quality != 'Not backed up' %} · {{ m.quality }}{% endif %}
+      </span>
+    </span>
+    <span class="row-meta">
+      {% if m.watched %}<span class="badge watched">Watched</span>{% endif %}
+      {% if m.personal_rating %}<span class="badge">{{ m.personal_rating }}/10</span>{% endif %}
+    </span>
+  </a>
+  {% endfor %}
+</section>
+{% elif movies %}
 <section class="grid">
   {% for m in movies %}
   <a class="card" href="/movies/{{ m.id }}">

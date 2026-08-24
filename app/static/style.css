@@ -131,6 +131,48 @@ input, select, textarea {
 .badge.status-completed { background: #1f4d2e; color: #9fdcb2; }
 .badge.status-dropped { background: #4d2a1f; color: #dcb29f; }
 
+.viewtoggle {
+  display: flex;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.viewtoggle a {
+  padding: 0.4rem 0.8rem;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.viewtoggle a.active { background: var(--accent); color: #fff; }
+
+.list { display: flex; flex-direction: column; gap: 0.4rem; }
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  text-decoration: none;
+  color: var(--text);
+}
+.row img, .row .row-thumb {
+  width: 36px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 5px;
+  background: var(--surface-2);
+  flex-shrink: 0;
+}
+.row-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.row-main strong { font-size: 0.95rem; overflow-wrap: anywhere; }
+.row-meta { display: flex; gap: 0.35rem; flex-shrink: 0; }
+
+@media (hover: hover) {
+  .row:hover { background: var(--surface-2); }
+}
+
 .syncbar {
   display: flex;
   align-items: center;
@@ -231,6 +273,10 @@ input, select, textarea {
   }
 
   .syncbar > form, .syncbar > form button { width: 100%; }
+
+  .viewtoggle { align-self: flex-start; }
+  .viewtoggle a { padding: 0.6rem 1rem; min-height: 44px; display: flex; align-items: center; }
+  .row-meta { flex-direction: column; align-items: flex-end; gap: 0.2rem; }
 
   .searchbar { flex-wrap: wrap; }
   .searchbar input { flex: 1 1 100%; }

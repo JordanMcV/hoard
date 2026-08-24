@@ -5,6 +5,7 @@
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
 <section class="toolbar">
   <form method="get" action="/games" class="filters">
+    <input type="hidden" name="view" value="{{ view }}">
     <input type="search" name="q" value="{{ q }}" placeholder="Search title or developer">
     <select name="platform">
       <option value="">All platforms</option>
@@ -27,6 +28,10 @@
     </select>
     <button type="submit">Apply</button>
   </form>
+  <div class="viewtoggle" role="group" aria-label="View">
+    <a href="{{ view_urls.grid }}" {% if view != 'list' %}class="active" aria-current="true"{% endif %}>Gallery</a>
+    <a href="{{ view_urls.list }}" {% if view == 'list' %}class="active" aria-current="true"{% endif %}>List</a>
+  </div>
   <p class="stats">
     {{ stats.total }} game{{ '' if stats.total == 1 else 's' }}, {{ stats.backlog }} backlog,
     {{ stats.completed }} completed, {{ (stats.playtime_minutes / 60) | round | int }}h played
@@ -47,7 +52,29 @@
 </section>
 {% endif %}
 
-{% if games %}
+{% if games and view == 'list' %}
+<section class="list">
+  {% for g in games %}
+  <a class="row" href="/games/{{ g.id }}">
+    {% if g.cover_file %}
+    <img src="/posters/{{ g.cover_file }}" alt="" loading="lazy">
+    {% else %}
+    <span class="row-thumb"></span>
+    {% endif %}
+    <span class="row-main">
+      <strong>{{ g.title }}</strong>
+      <span class="muted small">
+        {{ g.platform }}{% if g.playtime_minutes %} · {{ (g.playtime_minutes / 60) | round | int }}h{% endif %}
+      </span>
+    </span>
+    <span class="row-meta">
+      <span class="badge status-{{ g.status | lower }}">{{ g.status }}</span>
+      {% if g.personal_rating %}<span class="badge">{{ g.personal_rating }}/10</span>{% endif %}
+    </span>
+  </a>
+  {% endfor %}
+</section>
+{% elif games %}
 <section class="grid">
   {% for g in games %}
   <a class="card" href="/games/{{ g.id }}">

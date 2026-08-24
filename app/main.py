@@ -2,6 +2,7 @@ import csv
 import io
 import logging
 from pathlib import Path
+from urllib.parse import urlencode
 
 import httpx
 from fastapi import FastAPI, Form, Request
@@ -31,11 +32,20 @@ templates.env.globals.update(
 )
 
 
+def _view_urls(request: Request) -> dict:
+    """Links to each view that keep the current filters."""
+    params = {k: v for k, v in request.query_params.items() if k != "view"}
+    return {
+        v: f"{request.url.path}?{urlencode({**params, 'view': v})}"
+        for v in ("grid", "list")
+    }
+
+
 # Movies
 
 @app.get("/")
 def index(request: Request, q: str = "", medium: str = "", quality: str = "", watched: str = "",
-          sort: str = "added", msg: str = "", error: str = ""):
+          sort: str = "title", view: str = "grid", msg: str = "", error: str = ""):
     movies = db.list_movies(q=q, medium=medium, quality=quality, watched=watched, sort=sort)
     return templates.TemplateResponse(
         request,
@@ -48,6 +58,8 @@ def index(request: Request, q: str = "", medium: str = "", quality: str = "", wa
             "quality": quality,
             "watched": watched,
             "sort": sort,
+            "view": view,
+            "view_urls": _view_urls(request),
             "msg": msg,
             "error": error,
             "plex_enabled": plex.enabled(),
@@ -177,7 +189,8 @@ def delete(movie_id: int):
 # Games
 
 @app.get("/games")
-def games_index(request: Request, q: str = "", platform: str = "", status: str = "", sort: str = "added", msg: str = "", error: str = ""):
+def games_index(request: Request, q: str = "", platform: str = "", status: str = "",
+                sort: str = "added", view: str = "grid", msg: str = "", error: str = ""):
     games = db.list_games(q=q, platform=platform, status=status, sort=sort)
     return templates.TemplateResponse(
         request,
@@ -189,6 +202,8 @@ def games_index(request: Request, q: str = "", platform: str = "", status: str =
             "platform": platform,
             "status": status,
             "sort": sort,
+            "view": view,
+            "view_urls": _view_urls(request),
             "msg": msg,
             "error": error,
             "steam_enabled": steam.enabled(),
