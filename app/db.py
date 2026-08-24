@@ -62,19 +62,30 @@ STORES = ["Steam", "PSN", "Physical", "Battle.net", "GOG", "Other"]
 
 STATUSES = ["Backlog", "Playing", "Completed", "Dropped"]
 
+# Sort "The Matrix" under M. SQLite's LIKE is case-insensitive for ASCII, and the
+# trailing space means "Theatre" and "A.I." keep their first word.
+SORT_TITLE = (
+    "CASE"
+    " WHEN title LIKE 'The %' THEN SUBSTR(title, 5)"
+    " WHEN title LIKE 'An %' THEN SUBSTR(title, 4)"
+    " WHEN title LIKE 'A %' THEN SUBSTR(title, 3)"
+    " ELSE title"
+    " END COLLATE NOCASE"
+)
+
 MOVIE_SORTS = {
     "added": "added_at DESC, id DESC",
-    "title": "title COLLATE NOCASE ASC",
-    "year": "year DESC, title COLLATE NOCASE ASC",
-    "rating": "personal_rating DESC, title COLLATE NOCASE ASC",
+    "title": f"{SORT_TITLE} ASC",
+    "year": f"year DESC, {SORT_TITLE} ASC",
+    "rating": f"personal_rating DESC, {SORT_TITLE} ASC",
 }
 
 GAME_SORTS = {
     "added": "added_at DESC, id DESC",
-    "title": "title COLLATE NOCASE ASC",
-    "year": "year DESC, title COLLATE NOCASE ASC",
-    "rating": "personal_rating DESC, title COLLATE NOCASE ASC",
-    "playtime": "playtime_minutes DESC, title COLLATE NOCASE ASC",
+    "title": f"{SORT_TITLE} ASC",
+    "year": f"year DESC, {SORT_TITLE} ASC",
+    "rating": f"personal_rating DESC, {SORT_TITLE} ASC",
+    "playtime": f"playtime_minutes DESC, {SORT_TITLE} ASC",
 }
 
 
