@@ -126,6 +126,7 @@ input, select, textarea {
 }
 .badge.watched { background: #1f4d2e; color: #9fdcb2; }
 .badge.owned { background: #1f4d2e; color: #9fdcb2; }
+.badge.pinned { background: #4a3a12; color: #f0d18a; }
 .badge.status-backlog { background: var(--surface-2); color: var(--muted); }
 .badge.status-playing { background: #1d3a5f; color: #9cc3f2; }
 .badge.status-completed { background: #1f4d2e; color: #9fdcb2; }

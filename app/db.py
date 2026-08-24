@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS games (
     playtime_minutes INTEGER,
     cover_file TEXT,
     status TEXT NOT NULL DEFAULT 'Backlog',
+    pinned INTEGER NOT NULL DEFAULT 0,
     personal_rating INTEGER,
     notes TEXT,
     added_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -80,12 +81,13 @@ MOVIE_SORTS = {
     "rating": f"personal_rating DESC, {SORT_TITLE} ASC",
 }
 
+# Pinned games lead every ordering, so what you mean to play next stays visible.
 GAME_SORTS = {
-    "added": "added_at DESC, id DESC",
-    "title": f"{SORT_TITLE} ASC",
-    "year": f"year DESC, {SORT_TITLE} ASC",
-    "rating": f"personal_rating DESC, {SORT_TITLE} ASC",
-    "playtime": f"playtime_minutes DESC, {SORT_TITLE} ASC",
+    "added": "pinned DESC, added_at DESC, id DESC",
+    "title": f"pinned DESC, {SORT_TITLE} ASC",
+    "year": f"pinned DESC, year DESC, {SORT_TITLE} ASC",
+    "rating": f"pinned DESC, personal_rating DESC, {SORT_TITLE} ASC",
+    "playtime": f"pinned DESC, playtime_minutes DESC, {SORT_TITLE} ASC",
 }
 
 
@@ -113,6 +115,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE movies ADD COLUMN source TEXT")
     if "plex_key" not in cols:
         conn.execute("ALTER TABLE movies ADD COLUMN plex_key TEXT")
+
+    game_cols = {r["name"] for r in conn.execute("PRAGMA table_info(games)")}
+    if game_cols and "pinned" not in game_cols:
+        conn.execute("ALTER TABLE games ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
 
     if backfill and "format" in cols:
         conn.execute(
@@ -255,7 +261,8 @@ def movie_stats() -> dict:
 
 # Games
 
-def list_games(q: str = "", platform: str = "", status: str = "", sort: str = "added") -> list[sqlite3.Row]:
+def list_games(q: str = "", platform: str = "", status: str = "", pinned: str = "",
+               sort: str = "added") -> list[sqlite3.Row]:
     where, params = [], []
     if q:
         where.append("(title LIKE ? OR developer LIKE ?)")
@@ -266,6 +273,8 @@ def list_games(q: str = "", platform: str = "", status: str = "", sort: str = "a
     if status:
         where.append("status = ?")
         params.append(status)
+    if pinned == "1":
+        where.append("pinned = 1")
     sql = "SELECT * FROM games"
     if where:
         sql += " WHERE " + " AND ".join(where)
@@ -336,6 +345,7 @@ def game_stats() -> dict:
             SELECT COUNT(*) AS total,
                    COALESCE(SUM(status = 'Backlog'), 0) AS backlog,
                    COALESCE(SUM(status = 'Completed'), 0) AS completed,
+                   COALESCE(SUM(pinned), 0) AS pinned,
                    COALESCE(SUM(playtime_minutes), 0) AS playtime_minutes
             FROM games
             """

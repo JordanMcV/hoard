@@ -28,6 +28,10 @@
           {% endfor %}
         </select>
       </label>
+      <label class="check">
+        <input type="hidden" name="pinned" value="0">
+        <input type="checkbox" name="pinned" value="1" {% if game.pinned %}checked{% endif %}> Pinned — play soon
+      </label>
       <label>Platform
         <select name="platform">
           {% for p in platforms %}

@@ -190,8 +190,9 @@ def delete(movie_id: int):
 
 @app.get("/games")
 def games_index(request: Request, q: str = "", platform: str = "", status: str = "",
-                sort: str = "added", view: str = "grid", msg: str = "", error: str = ""):
-    games = db.list_games(q=q, platform=platform, status=status, sort=sort)
+                pinned: str = "", sort: str = "title", view: str = "grid",
+                msg: str = "", error: str = ""):
+    games = db.list_games(q=q, platform=platform, status=status, pinned=pinned, sort=sort)
     return templates.TemplateResponse(
         request,
         "games_index.html",
@@ -201,6 +202,7 @@ def games_index(request: Request, q: str = "", platform: str = "", status: str =
             "q": q,
             "platform": platform,
             "status": status,
+            "pinned": pinned,
             "sort": sort,
             "view": view,
             "view_urls": _view_urls(request),
@@ -276,10 +278,12 @@ def random_game():
 def export_games():
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["title", "year", "platform", "store", "status", "playtime_minutes", "rating", "developer", "genres", "notes", "added_at"])
+    writer.writerow(["title", "year", "platform", "store", "status", "pinned", "playtime_minutes",
+                     "rating", "developer", "genres", "notes", "added_at"])
     for g in db.list_games(sort="title"):
-        writer.writerow([g["title"], g["year"], g["platform"], g["store"], g["status"], g["playtime_minutes"],
-                         g["personal_rating"], g["developer"], g["genres"], g["notes"], g["added_at"]])
+        writer.writerow([g["title"], g["year"], g["platform"], g["store"], g["status"], g["pinned"],
+                         g["playtime_minutes"], g["personal_rating"], g["developer"], g["genres"],
+                         g["notes"], g["added_at"]])
     return Response(
         buf.getvalue(),
         media_type="text/csv",
@@ -352,6 +356,7 @@ def game_update(
     platform: str = Form("PC"),
     store: str = Form("Other"),
     status: str = Form("Backlog"),
+    pinned: str = Form("0"),
     playtime_minutes: int | None = Form(None),
     personal_rating: int | None = Form(None),
     notes: str = Form(""),
@@ -361,6 +366,7 @@ def game_update(
         platform=platform,
         store=store,
         status=status,
+        pinned=1 if pinned == "1" else 0,
         playtime_minutes=playtime_minutes,
         personal_rating=personal_rating,
         notes=notes.strip() or None,
