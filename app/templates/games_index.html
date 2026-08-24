@@ -23,6 +23,11 @@
       <option value="">Pinned and unpinned</option>
       <option value="1" {% if pinned == '1' %}selected{% endif %}>Pinned only</option>
     </select>
+    <select name="hidden">
+      <option value="">Visible games</option>
+      <option value="all" {% if hidden == 'all' %}selected{% endif %}>Include hidden</option>
+      <option value="1" {% if hidden == '1' %}selected{% endif %}>Hidden only</option>
+    </select>
     <select name="sort">
       <option value="added" {% if sort == 'added' %}selected{% endif %}>Recently added</option>
       <option value="title" {% if sort == 'title' %}selected{% endif %}>Title</option>
@@ -40,6 +45,7 @@
     {{ stats.total }} game{{ '' if stats.total == 1 else 's' }},
     {% if stats.pinned %}{{ stats.pinned }} pinned, {% endif %}{{ stats.backlog }} backlog,
     {{ stats.completed }} completed, {{ (stats.playtime_minutes / 60) | round | int }}h played
+    {% if stats.hidden %}· {{ stats.hidden }} hidden{% endif %}
     · <a href="/random/game">Pick for me</a>
     · <a href="/export/games.csv">Export CSV</a>
   </p>
@@ -73,6 +79,7 @@
       </span>
     </span>
     <span class="row-meta">
+      {% if g.hidden %}<span class="badge hidden">Hidden</span>{% endif %}
       {% if g.pinned %}<span class="badge pinned">Pinned</span>{% endif %}
       <span class="badge status-{{ g.status | lower }}">{{ g.status }}</span>
       {% if g.personal_rating %}<span class="badge">{{ g.personal_rating }}/10</span>{% endif %}
@@ -93,6 +100,7 @@
       <strong>{{ g.title }}</strong>
       <span class="muted">{{ g.platform }}{% if g.playtime_minutes %} · {{ (g.playtime_minutes / 60) | round | int }}h{% endif %}</span>
       <span class="badges">
+        {% if g.hidden %}<span class="badge hidden">Hidden</span>{% endif %}
         {% if g.pinned %}<span class="badge pinned">Pinned</span>{% endif %}
         <span class="badge status-{{ g.status | lower }}">{{ g.status }}</span>
         {% if g.personal_rating %}<span class="badge">{{ g.personal_rating }}/10</span>{% endif %}

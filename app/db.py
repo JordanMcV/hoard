@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS games (
     cover_file TEXT,
     status TEXT NOT NULL DEFAULT 'Backlog',
     pinned INTEGER NOT NULL DEFAULT 0,
+    hidden INTEGER NOT NULL DEFAULT 0,
     personal_rating INTEGER,
     notes TEXT,
     added_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -119,6 +120,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     game_cols = {r["name"] for r in conn.execute("PRAGMA table_info(games)")}
     if game_cols and "pinned" not in game_cols:
         conn.execute("ALTER TABLE games ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
+    if game_cols and "hidden" not in game_cols:
+        conn.execute("ALTER TABLE games ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0")
 
     if backfill and "format" in cols:
         conn.execute(
@@ -262,7 +265,7 @@ def movie_stats() -> dict:
 # Games
 
 def list_games(q: str = "", platform: str = "", status: str = "", pinned: str = "",
-               sort: str = "added") -> list[sqlite3.Row]:
+               hidden: str = "", sort: str = "added") -> list[sqlite3.Row]:
     where, params = [], []
     if q:
         where.append("(title LIKE ? OR developer LIKE ?)")
@@ -275,6 +278,10 @@ def list_games(q: str = "", platform: str = "", status: str = "", pinned: str = 
         params.append(status)
     if pinned == "1":
         where.append("pinned = 1")
+    if hidden == "1":
+        where.append("hidden = 1")
+    elif hidden != "all":
+        where.append("hidden = 0")
     sql = "SELECT * FROM games"
     if where:
         sql += " WHERE " + " AND ".join(where)
@@ -329,9 +336,9 @@ def update_game_by_external(source: str, external_id: str, **fields) -> None:
 
 
 def random_game_id(backlog_only: bool = True) -> int | None:
-    sql = "SELECT id FROM games"
+    sql = "SELECT id FROM games WHERE hidden = 0"
     if backlog_only:
-        sql += " WHERE status = 'Backlog'"
+        sql += " AND status = 'Backlog'"
     sql += " ORDER BY RANDOM() LIMIT 1"
     with connect() as conn:
         row = conn.execute(sql).fetchone()
@@ -342,11 +349,13 @@ def game_stats() -> dict:
     with connect() as conn:
         row = conn.execute(
             """
-            SELECT COUNT(*) AS total,
-                   COALESCE(SUM(status = 'Backlog'), 0) AS backlog,
-                   COALESCE(SUM(status = 'Completed'), 0) AS completed,
-                   COALESCE(SUM(pinned), 0) AS pinned,
-                   COALESCE(SUM(playtime_minutes), 0) AS playtime_minutes
+            SELECT COALESCE(SUM(hidden = 0), 0) AS total,
+                   COALESCE(SUM(hidden = 0 AND status = 'Backlog'), 0) AS backlog,
+                   COALESCE(SUM(hidden = 0 AND status = 'Completed'), 0) AS completed,
+                   COALESCE(SUM(hidden = 0 AND pinned = 1), 0) AS pinned,
+                   COALESCE(SUM(hidden), 0) AS hidden,
+                   COALESCE(SUM(CASE WHEN hidden = 0 THEN playtime_minutes ELSE 0 END), 0)
+                       AS playtime_minutes
             FROM games
             """
         ).fetchone()

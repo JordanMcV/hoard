@@ -32,6 +32,10 @@
         <input type="hidden" name="pinned" value="0">
         <input type="checkbox" name="pinned" value="1" {% if game.pinned %}checked{% endif %}> Pinned — play soon
       </label>
+      <label class="check">
+        <input type="hidden" name="hidden" value="0">
+        <input type="checkbox" name="hidden" value="1" {% if game.hidden %}checked{% endif %}> Hidden — keep out of the list
+      </label>
       <label>Platform
         <select name="platform">
           {% for p in platforms %}
@@ -56,9 +60,15 @@
       <button type="submit">Save</button>
     </form>
 
-    <form method="post" action="/games/{{ game.id }}/delete" onsubmit="return confirm('Delete {{ game.title }} from your collection?')">
+    <form method="post" action="/games/{{ game.id }}/delete" onsubmit="return confirm('Delete {{ game.title }} from your collection?{% if game.external_source %}\n\nThe next {{ game.external_source }} sync will add it back. Hide it instead to keep it out for good.{% endif %}')">
       <button type="submit" class="danger">Delete</button>
     </form>
+    {% if game.external_source %}
+    <p class="muted small">
+      This game came from {{ game.external_source }}. Deleting it only removes it until the
+      next sync. Tick "Hidden" above to keep it out of the list permanently.
+    </p>
+    {% endif %}
     <p class="muted small">Added {{ game.added_at }} UTC</p>
   </div>
 </article>
