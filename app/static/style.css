@@ -87,6 +87,8 @@ input, select, textarea {
 }
 
 .card {
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border-radius: var(--radius);
   overflow: hidden;
@@ -98,7 +100,8 @@ input, select, textarea {
 @media (hover: hover) {
   .card:hover { transform: translateY(-2px); }
 }
-.card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; }
+.card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; flex-shrink: 0; }
+.card > .poster-placeholder { flex-shrink: 0; }
 
 .poster-placeholder {
   aspect-ratio: 2 / 3;
@@ -113,7 +116,10 @@ input, select, textarea {
 
 .poster-placeholder.small { width: 92px; flex-shrink: 0; border-radius: var(--radius); }
 
-.card-body { padding: 0.6rem 0.75rem 0.75rem; display: flex; flex-direction: column; gap: 0.15rem; }
+.card-body { padding: 0.6rem 0.75rem 0.75rem; display: flex; flex-direction: column; gap: 0.15rem; flex: 1; }
+/* Titles run to different lengths, so pin the badges to the bottom edge and
+   every card in the row lines its badges up. */
+.card-body .badges { margin-top: auto; padding-top: 0.4rem; }
 .card-body strong { font-size: 0.95rem; overflow-wrap: anywhere; }
 .card-body .muted { overflow-wrap: anywhere; }
 
@@ -181,9 +187,10 @@ input, select, textarea {
 
 .pinned-section {
   background: var(--surface);
+  border: 1px solid #2c3040;
   border-radius: var(--radius);
   padding: 0.75rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.75rem;
 }
 .pinned-section > summary {
   cursor: pointer;
@@ -198,6 +205,61 @@ input, select, textarea {
 .pinned-section .row { background: var(--surface-2); }
 @media (hover: hover) {
   .pinned-section .row:hover { background: var(--bg); }
+}
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.section-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #2c3040;
+}
+
+.sortable-item { position: relative; display: flex; flex-direction: column; }
+.sortable-item > .card, .sortable-item > .row { flex: 1; }
+
+.draghandle {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+  background: rgba(18, 20, 26, 0.72);
+  color: var(--muted);
+  border-radius: 6px;
+  cursor: grab;
+  /* Without this a touch drag scrolls the page instead. */
+  touch-action: none;
+}
+.draghandle svg { fill: currentColor; }
+.draghandle:hover, .draghandle:focus-visible { color: var(--text); }
+
+.list .sortable-item .draghandle { top: 50%; transform: translateY(-50%); }
+.list .sortable-item .row { padding-right: 2.75rem; }
+
+.is-sorting { user-select: none; }
+.is-sorting .draghandle { cursor: grabbing; }
+.is-sorting .card, .is-sorting .row { transition: none; }
+.is-sorting a { pointer-events: none; }
+.sortable-item.is-dragging { opacity: 0.6; }
+.sortable-item.is-dragging .card, .sortable-item.is-dragging .row {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .syncbar {
@@ -300,6 +362,7 @@ input, select, textarea {
   }
 
   .pinned-section > summary { padding: 0.4rem 0; }
+  .draghandle { width: 34px; height: 34px; }
 
   .syncbar > form, .syncbar > form button { width: 100%; }
 

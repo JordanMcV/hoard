@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS games (
     cover_file TEXT,
     status TEXT NOT NULL DEFAULT 'Backlog',
     pinned INTEGER NOT NULL DEFAULT 0,
+    pin_order INTEGER,
     hidden INTEGER NOT NULL DEFAULT 0,
     personal_rating INTEGER,
     notes TEXT,
@@ -83,12 +84,19 @@ MOVIE_SORTS = {
 }
 
 # Pinned games lead every ordering, so what you mean to play next stays visible.
+# Within the pinned games, the order you set by dragging them wins. A game pinned
+# since the last drag has no place yet, so it waits at the end.
+UNPLACED = 1000000
+PINNED_FIRST = (
+    f"pinned DESC, CASE WHEN pinned = 1 THEN COALESCE(pin_order, {UNPLACED}) END ASC"
+)
+
 GAME_SORTS = {
-    "added": "pinned DESC, added_at DESC, id DESC",
-    "title": f"pinned DESC, {SORT_TITLE} ASC",
-    "year": f"pinned DESC, year DESC, {SORT_TITLE} ASC",
-    "rating": f"pinned DESC, personal_rating DESC, {SORT_TITLE} ASC",
-    "playtime": f"pinned DESC, playtime_minutes DESC, {SORT_TITLE} ASC",
+    "added": f"{PINNED_FIRST}, added_at DESC, id DESC",
+    "title": f"{PINNED_FIRST}, {SORT_TITLE} ASC",
+    "year": f"{PINNED_FIRST}, year DESC, {SORT_TITLE} ASC",
+    "rating": f"{PINNED_FIRST}, personal_rating DESC, {SORT_TITLE} ASC",
+    "playtime": f"{PINNED_FIRST}, playtime_minutes DESC, {SORT_TITLE} ASC",
 }
 
 
@@ -122,6 +130,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE games ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
     if game_cols and "hidden" not in game_cols:
         conn.execute("ALTER TABLE games ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0")
+    if game_cols and "pin_order" not in game_cols:
+        conn.execute("ALTER TABLE games ADD COLUMN pin_order INTEGER")
 
     if backfill and "format" in cols:
         conn.execute(
@@ -332,6 +342,32 @@ def update_game_by_external(source: str, external_id: str, **fields) -> None:
         conn.execute(
             f"UPDATE games SET {sets} WHERE external_source = ? AND external_id = ?",
             [*fields.values(), source, external_id],
+        )
+
+
+def set_pin_order(ids: list[int]) -> None:
+    """Reorder the pinned games the page showed, keeping the rest where they are.
+
+    A filtered pinned section shows only some of the pinned games. Those games
+    keep the slots they already held, so a drag inside a filter cannot shuffle
+    the games you could not see.
+    """
+    with connect() as conn:
+        rows = conn.execute(
+            f"SELECT id FROM games WHERE pinned = 1 "
+            f"ORDER BY COALESCE(pin_order, {UNPLACED}), id"
+        ).fetchall()
+        current = [r["id"] for r in rows]
+        moving = [i for i in ids if i in current]
+        if not moving:
+            return
+        slots = sorted(current.index(i) for i in moving)
+        placed = list(current)
+        for slot, game_id in zip(slots, moving):
+            placed[slot] = game_id
+        conn.executemany(
+            "UPDATE games SET pin_order = ? WHERE id = ?",
+            [(position, game_id) for position, game_id in enumerate(placed)],
         )
 
 

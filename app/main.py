@@ -5,7 +5,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import FastAPI, Form, Request
+from fastapi import Body, FastAPI, Form, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -215,6 +215,13 @@ def games_index(request: Request, q: str = "", platform: str = "", status: str =
             "section": "games",
         },
     )
+
+
+@app.post("/games/pinned/order")
+def games_pin_order(ids: list[int] = Body(..., embed=True)):
+    db.set_pin_order(ids)
+    logger.info("[Games] Pinned order saved", extra={"count": len(ids)})
+    return {"ok": True}
 
 
 @app.get("/games/add")

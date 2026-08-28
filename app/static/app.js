@@ -67,6 +67,132 @@
     }
   });
 
+  // Drag to reorder. Pointer events cover both mouse and touch, unlike the
+  // HTML5 drag events, which iOS Safari never fires.
+  document.querySelectorAll("[data-sortable]").forEach(function (container) {
+    var endpoint = container.dataset.sortable;
+    var saveTimer = null;
+
+    function items() {
+      return Array.prototype.slice.call(
+        container.querySelectorAll(".sortable-item")
+      );
+    }
+
+    function save() {
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(function () {
+        var ids = items().map(function (el) {
+          return Number(el.dataset.id);
+        });
+        window
+          .fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: ids }),
+          })
+          .catch(function () {
+            // The order on screen is now ahead of the server. The next page
+            // load shows what was actually stored.
+          });
+      }, 250);
+    }
+
+    function centre(el) {
+      var r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+
+    function distance(el, x, y) {
+      var c = centre(el);
+      return Math.pow(x - c.x, 2) + Math.pow(y - c.y, 2);
+    }
+
+    // Swap with whichever neighbour the pointer now sits closest to. Comparing
+    // against the dragged card's own centre stops it flickering between two
+    // slots when the pointer rests on a boundary.
+    function reposition(dragged, x, y) {
+      var best = null;
+      var bestDistance = distance(dragged, x, y);
+      items().forEach(function (el) {
+        if (el === dragged) {
+          return;
+        }
+        var d = distance(el, x, y);
+        if (d < bestDistance) {
+          bestDistance = d;
+          best = el;
+        }
+      });
+      if (!best) {
+        return false;
+      }
+      var follows =
+        dragged.compareDocumentPosition(best) & Node.DOCUMENT_POSITION_FOLLOWING;
+      if (follows) {
+        best.after(dragged);
+      } else {
+        best.before(dragged);
+      }
+      return true;
+    }
+
+    container.querySelectorAll(".draghandle").forEach(function (handle) {
+      var item = handle.closest(".sortable-item");
+      var dragging = false;
+
+      handle.addEventListener("pointerdown", function (event) {
+        event.preventDefault();
+        dragging = true;
+        handle.setPointerCapture(event.pointerId);
+        container.classList.add("is-sorting");
+        item.classList.add("is-dragging");
+      });
+
+      handle.addEventListener("pointermove", function (event) {
+        if (dragging) {
+          reposition(item, event.clientX, event.clientY);
+        }
+      });
+
+      function stop() {
+        if (!dragging) {
+          return;
+        }
+        dragging = false;
+        container.classList.remove("is-sorting");
+        item.classList.remove("is-dragging");
+        save();
+      }
+
+      handle.addEventListener("pointerup", stop);
+      handle.addEventListener("pointercancel", stop);
+
+      // Arrow keys move the card one place, for anyone not using a pointer.
+      handle.addEventListener("keydown", function (event) {
+        var back = event.key === "ArrowLeft" || event.key === "ArrowUp";
+        var forward = event.key === "ArrowRight" || event.key === "ArrowDown";
+        if (!back && !forward) {
+          return;
+        }
+        var sibling = back
+          ? item.previousElementSibling
+          : item.nextElementSibling;
+        if (!sibling) {
+          return;
+        }
+        event.preventDefault();
+        if (back) {
+          sibling.before(item);
+        } else {
+          sibling.after(item);
+        }
+        handle.focus();
+        save();
+      });
+    });
+  });
+
   // Remember whether each accordion is open, per browser.
   document.querySelectorAll("details[id]").forEach(function (details) {
     var key = "hoard:open:" + details.id;
