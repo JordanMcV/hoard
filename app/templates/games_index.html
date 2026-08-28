@@ -1,5 +1,60 @@
 {% extends "base.html" %}
 {% block title %}Games{% endblock %}
+
+{% macro game_row(g) %}
+<a class="row" href="/games/{{ g.id }}">
+  {% if g.cover_file %}
+  <img src="/posters/{{ g.cover_file }}" alt="" loading="lazy">
+  {% else %}
+  <span class="row-thumb"></span>
+  {% endif %}
+  <span class="row-main">
+    <strong>{{ g.title }}</strong>
+    <span class="muted small">
+      {{ g.platform }}{% if g.playtime_minutes %} · {{ (g.playtime_minutes / 60) | round | int }}h{% endif %}
+    </span>
+  </span>
+  <span class="row-meta">
+    {% if g.hidden %}<span class="badge hidden">Hidden</span>{% endif %}
+    {% if g.pinned %}<span class="badge pinned">Pinned</span>{% endif %}
+    <span class="badge status-{{ g.status | lower }}">{{ g.status }}</span>
+    {% if g.personal_rating %}<span class="badge">{{ g.personal_rating }}/10</span>{% endif %}
+  </span>
+</a>
+{% endmacro %}
+
+{% macro game_card(g) %}
+<a class="card" href="/games/{{ g.id }}">
+  {% if g.cover_file %}
+  <img src="/posters/{{ g.cover_file }}" alt="{{ g.title }} cover" loading="lazy">
+  {% else %}
+  <div class="poster-placeholder"><span>{{ g.title }}</span></div>
+  {% endif %}
+  <div class="card-body">
+    <strong>{{ g.title }}</strong>
+    <span class="muted">{{ g.platform }}{% if g.playtime_minutes %} · {{ (g.playtime_minutes / 60) | round | int }}h{% endif %}</span>
+    <span class="badges">
+      {% if g.hidden %}<span class="badge hidden">Hidden</span>{% endif %}
+      {% if g.pinned %}<span class="badge pinned">Pinned</span>{% endif %}
+      <span class="badge status-{{ g.status | lower }}">{{ g.status }}</span>
+      {% if g.personal_rating %}<span class="badge">{{ g.personal_rating }}/10</span>{% endif %}
+    </span>
+  </div>
+</a>
+{% endmacro %}
+
+{% macro game_section(items, view) %}
+{% if view == 'list' %}
+<section class="list">
+  {% for g in items %}{{ game_row(g) }}{% endfor %}
+</section>
+{% else %}
+<section class="grid">
+  {% for g in items %}{{ game_card(g) }}{% endfor %}
+</section>
+{% endif %}
+{% endmacro %}
+
 {% block content %}
 {% if msg %}<p class="notice">{{ msg }}</p>{% endif %}
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
@@ -63,53 +118,28 @@
 </section>
 {% endif %}
 
-{% if games and view == 'list' %}
-<section class="list">
-  {% for g in games %}
-  <a class="row" href="/games/{{ g.id }}">
-    {% if g.cover_file %}
-    <img src="/posters/{{ g.cover_file }}" alt="" loading="lazy">
-    {% else %}
-    <span class="row-thumb"></span>
-    {% endif %}
-    <span class="row-main">
-      <strong>{{ g.title }}</strong>
-      <span class="muted small">
-        {{ g.platform }}{% if g.playtime_minutes %} · {{ (g.playtime_minutes / 60) | round | int }}h{% endif %}
-      </span>
-    </span>
-    <span class="row-meta">
-      {% if g.hidden %}<span class="badge hidden">Hidden</span>{% endif %}
-      {% if g.pinned %}<span class="badge pinned">Pinned</span>{% endif %}
-      <span class="badge status-{{ g.status | lower }}">{{ g.status }}</span>
-      {% if g.personal_rating %}<span class="badge">{{ g.personal_rating }}/10</span>{% endif %}
-    </span>
-  </a>
-  {% endfor %}
-</section>
-{% elif games %}
-<section class="grid">
-  {% for g in games %}
-  <a class="card" href="/games/{{ g.id }}">
-    {% if g.cover_file %}
-    <img src="/posters/{{ g.cover_file }}" alt="{{ g.title }} cover" loading="lazy">
-    {% else %}
-    <div class="poster-placeholder"><span>{{ g.title }}</span></div>
-    {% endif %}
-    <div class="card-body">
-      <strong>{{ g.title }}</strong>
-      <span class="muted">{{ g.platform }}{% if g.playtime_minutes %} · {{ (g.playtime_minutes / 60) | round | int }}h{% endif %}</span>
-      <span class="badges">
-        {% if g.hidden %}<span class="badge hidden">Hidden</span>{% endif %}
-        {% if g.pinned %}<span class="badge pinned">Pinned</span>{% endif %}
-        <span class="badge status-{{ g.status | lower }}">{{ g.status }}</span>
-        {% if g.personal_rating %}<span class="badge">{{ g.personal_rating }}/10</span>{% endif %}
-      </span>
-    </div>
-  </a>
-  {% endfor %}
-</section>
+{# The "Pinned only" filter already gives a page of pinned games. A separate
+   section there would only hold every game twice. #}
+{% if pinned == '1' %}
+{% set pinned_games = [] %}
+{% set rest = games %}
 {% else %}
+{% set pinned_games = games | selectattr('pinned') | list %}
+{% set rest = games | rejectattr('pinned') | list %}
+{% endif %}
+
+{% if pinned_games %}
+<details class="pinned-section" id="pinned-games" open>
+  <summary>
+    Pinned <span class="badge">{{ pinned_games | length }}</span>
+  </summary>
+  {{ game_section(pinned_games, view) }}
+</details>
+{% endif %}
+
+{% if rest %}
+{{ game_section(rest, view) }}
+{% elif not games %}
 <section class="empty">
   <p>No games yet.</p>
   <a class="button" href="/games/add">Add your first game</a>
