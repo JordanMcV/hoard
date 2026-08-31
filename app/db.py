@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS games (
 """
 
 # What you physically own.
-MEDIUMS = ["4K UHD Disc", "Blu-ray", "DVD", "VHS", "Digital only", "Other"]
+MEDIUMS = ["4K UHD Disc", "Blu-ray", "DVD", "VHS", "Digital", "Other"]
 
 # The best digital copy you hold. "Not backed up" means disc only.
 QUALITIES = ["Not backed up", "4K Remux", "4K", "1080p Remux", "1080p", "720p", "SD"]
@@ -133,6 +133,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if game_cols and "pin_order" not in game_cols:
         conn.execute("ALTER TABLE games ADD COLUMN pin_order INTEGER")
 
+    # The medium used to be called "Digital only", from when it meant "no disc".
+    conn.execute("UPDATE movies SET medium = 'Digital' WHERE medium = 'Digital only'")
+
     if backfill and "format" in cols:
         conn.execute(
             """
@@ -140,7 +143,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
                 medium = CASE
                     WHEN format = '4K UHD' THEN '4K UHD Disc'
                     WHEN format IN ('Blu-ray', 'DVD', 'VHS') THEN format
-                    WHEN format LIKE 'Digital%' THEN 'Digital only'
+                    WHEN format LIKE 'Digital%' THEN 'Digital'
                     ELSE 'Other'
                 END,
                 quality = CASE

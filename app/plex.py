@@ -138,7 +138,7 @@ def sync() -> dict:
                             exc_info=True,
                         )
                 db.add_movie(
-                    medium="Digital only",
+                    medium="Digital",
                     quality=quality,
                     source="Plex",
                     plex_key=plex_key,
