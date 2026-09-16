@@ -49,6 +49,30 @@ CREATE TABLE IF NOT EXISTS games (
     added_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(external_source, external_id)
 );
+
+CREATE TABLE IF NOT EXISTS shows (
+    id INTEGER PRIMARY KEY,
+    tmdb_id INTEGER,
+    title TEXT NOT NULL,
+    season_number INTEGER NOT NULL DEFAULT 1,
+    season_name TEXT,
+    year INTEGER,
+    medium TEXT NOT NULL DEFAULT 'Blu-ray',
+    quality TEXT NOT NULL DEFAULT 'Not backed up',
+    overview TEXT,
+    creator TEXT,
+    network TEXT,
+    episode_count INTEGER,
+    genres TEXT,
+    poster_file TEXT,
+    watched INTEGER NOT NULL DEFAULT 0,
+    personal_rating INTEGER,
+    notes TEXT,
+    location TEXT,
+    source TEXT,
+    added_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(tmdb_id, season_number)
+);
 """
 
 # What you physically own.
@@ -90,6 +114,14 @@ UNPLACED = 1000000
 PINNED_FIRST = (
     f"pinned DESC, CASE WHEN pinned = 1 THEN COALESCE(pin_order, {UNPLACED}) END ASC"
 )
+
+# Seasons of one show always read in order, whatever the outer sort.
+SHOW_SORTS = {
+    "added": "added_at DESC, id DESC",
+    "title": f"{SORT_TITLE} ASC, season_number ASC",
+    "year": f"year DESC, {SORT_TITLE} ASC, season_number ASC",
+    "rating": f"personal_rating DESC, {SORT_TITLE} ASC, season_number ASC",
+}
 
 GAME_SORTS = {
     "added": f"{PINNED_FIRST}, added_at DESC, id DESC",
@@ -273,6 +305,90 @@ def movie_stats() -> dict:
             "SELECT COUNT(*) AS total, COALESCE(SUM(watched), 0) AS watched FROM movies"
         ).fetchone()
         return {"total": row["total"], "watched": row["watched"]}
+
+
+# Shows
+#
+# One row is one season. A box set of a whole series becomes one row per season,
+# so a shelf of single-season boxes and a complete-series box hold the same shape.
+
+def list_shows(q: str = "", medium: str = "", quality: str = "", watched: str = "",
+               sort: str = "added") -> list[sqlite3.Row]:
+    where, params = [], []
+    if q:
+        where.append("(title LIKE ? OR creator LIKE ?)")
+        params += [f"%{q}%", f"%{q}%"]
+    if medium:
+        where.append("medium = ?")
+        params.append(medium)
+    if quality:
+        where.append("quality = ?")
+        params.append(quality)
+    if watched in ("0", "1"):
+        where.append("watched = ?")
+        params.append(int(watched))
+    sql = "SELECT * FROM shows"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY " + SHOW_SORTS.get(sort, SHOW_SORTS["added"])
+    with connect() as conn:
+        return conn.execute(sql, params).fetchall()
+
+
+def get_show(show_id: int) -> sqlite3.Row | None:
+    with connect() as conn:
+        return conn.execute("SELECT * FROM shows WHERE id = ?", (show_id,)).fetchone()
+
+
+def add_show(**fields) -> int:
+    return _insert("shows", fields)
+
+
+def update_show(show_id: int, **fields) -> None:
+    _update("shows", show_id, fields)
+
+
+def delete_show(show_id: int) -> None:
+    with connect() as conn:
+        conn.execute("DELETE FROM shows WHERE id = ?", (show_id,))
+
+
+def show_seasons_owned(tmdb_id: int) -> set[int]:
+    """Season numbers already held for one series, to stop a duplicate add."""
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT season_number FROM shows WHERE tmdb_id = ?", (tmdb_id,)
+        ).fetchall()
+        return {r["season_number"] for r in rows}
+
+
+def show_tmdb_ids() -> set[int]:
+    with connect() as conn:
+        rows = conn.execute("SELECT tmdb_id FROM shows WHERE tmdb_id IS NOT NULL").fetchall()
+        return {r["tmdb_id"] for r in rows}
+
+
+def random_show_id(unwatched_only: bool = True) -> int | None:
+    sql = "SELECT id FROM shows"
+    if unwatched_only:
+        sql += " WHERE watched = 0"
+    sql += " ORDER BY RANDOM() LIMIT 1"
+    with connect() as conn:
+        row = conn.execute(sql).fetchone()
+        return row["id"] if row else None
+
+
+def show_stats() -> dict:
+    with connect() as conn:
+        row = conn.execute(
+            """
+            SELECT COUNT(*) AS seasons,
+                   COUNT(DISTINCT COALESCE(tmdb_id, -id)) AS series,
+                   COALESCE(SUM(watched), 0) AS watched
+            FROM shows
+            """
+        ).fetchone()
+        return dict(row)
 
 
 # Games

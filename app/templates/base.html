@@ -16,12 +16,15 @@
       <a class="brand" href="/">Hoard</a>
       <nav class="navlinks">
         <a href="/" {% if section == 'movies' %}class="active"{% endif %}>Movies</a>
+        <a href="/shows" {% if section == 'shows' %}class="active"{% endif %}>TV</a>
         <a href="/games" {% if section == 'games' %}class="active"{% endif %}>Games</a>
       </nav>
     </div>
     <nav class="actions">
       {% if section == 'games' %}
       <a class="button" href="/games/add">Add game</a>
+      {% elif section == 'shows' %}
+      <a class="button" href="/shows/add">Add TV</a>
       {% else %}
       <a class="button" href="/add">Add movie</a>
       {% endif %}

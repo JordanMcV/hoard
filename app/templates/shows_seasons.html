@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ show.title }} seasons{% endblock %}
+{% block content %}
+<h1>{{ show.title }} {% if show.year %}<span class="muted">({{ show.year }})</span>{% endif %}</h1>
+<p class="muted">
+  {% if show.creator %}Created by {{ show.creator }}.{% endif %}
+  {% if show.network %}{{ show.network }}.{% endif %}
+  {% if show.genres %}{{ show.genres }}.{% endif %}
+</p>
+<p class="muted small">Tick every season in the box set. One record is created per season.</p>
+
+<form method="post" action="/shows/add" class="form">
+  <input type="hidden" name="tmdb_id" value="{{ show.tmdb_id }}">
+  <section class="results">
+    {% for s in show.seasons %}
+    <article class="result">
+      {% if s.poster_url %}
+      <img src="{{ s.poster_url }}" alt="" loading="lazy">
+      {% else %}
+      <div class="poster-placeholder small"><span>{{ s.season_name }}</span></div>
+      {% endif %}
+      <div class="result-body">
+        <label class="check">
+          <input type="checkbox" name="seasons" value="{{ s.season_number }}"
+                 {% if s.season_number in owned_seasons %}disabled{% else %}checked{% endif %}>
+          <strong>{{ s.season_name }}</strong>
+        </label>
+        <span class="muted">
+          {{ s.year or '' }}{% if s.episode_count %} · {{ s.episode_count }} episodes{% endif %}
+        </span>
+        {% if s.season_number in owned_seasons %}<span class="badge owned">In collection</span>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+
+  <label>Medium
+    <select name="medium">
+      {% for m in mediums %}
+      <option value="{{ m }}" {% if m == 'Blu-ray' %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Quality
+    <select name="quality">
+      {% for qu in qualities %}
+      <option value="{{ qu }}" {% if qu == 'Not backed up' %}selected{% endif %}>{{ qu }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit">Add selected seasons</button>
+</form>
+
+<p><a href="/shows/add?q={{ q }}">Back to search</a></p>
+{% endblock %}

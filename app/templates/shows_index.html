@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}TV{% endblock %}
+{% block content %}
+{% if msg %}<p class="notice">{{ msg }}</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<section class="toolbar">
+  <form method="get" action="/shows" class="filters">
+    <input type="hidden" name="view" value="{{ view }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search title or creator">
+    <select name="medium">
+      <option value="">All media</option>
+      {% for m in mediums %}
+      <option value="{{ m }}" {% if medium == m %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+    <select name="quality">
+      <option value="">All qualities</option>
+      {% for qu in qualities %}
+      <option value="{{ qu }}" {% if quality == qu %}selected{% endif %}>{{ qu }}</option>
+      {% endfor %}
+    </select>
+    <select name="watched">
+      <option value="">Watched and unwatched</option>
+      <option value="1" {% if watched == '1' %}selected{% endif %}>Watched</option>
+      <option value="0" {% if watched == '0' %}selected{% endif %}>Unwatched</option>
+    </select>
+    <select name="sort">
+      <option value="added" {% if sort == 'added' %}selected{% endif %}>Recently added</option>
+      <option value="title" {% if sort == 'title' %}selected{% endif %}>Title</option>
+      <option value="year" {% if sort == 'year' %}selected{% endif %}>Year</option>
+      <option value="rating" {% if sort == 'rating' %}selected{% endif %}>My rating</option>
+    </select>
+    <button type="submit">Apply</button>
+  </form>
+  <div class="viewtoggle" role="group" aria-label="View">
+    <a href="{{ view_urls.grid }}" {% if view != 'list' %}class="active" aria-current="true"{% endif %}>Gallery</a>
+    <a href="{{ view_urls.list }}" {% if view == 'list' %}class="active" aria-current="true"{% endif %}>List</a>
+  </div>
+  <p class="stats">
+    {{ stats.seasons }} season{{ '' if stats.seasons == 1 else 's' }}
+    across {{ stats.series }} show{{ '' if stats.series == 1 else 's' }},
+    {{ stats.watched }} watched
+    · <a href="/random/show">Pick for me</a>
+    · <a href="/export/shows.csv">Export CSV</a>
+  </p>
+</section>
+
+{% if shows and view == 'list' %}
+<section class="list">
+  {% for s in shows %}
+  <a class="row" href="/shows/{{ s.id }}">
+    {% if s.poster_file %}
+    <img src="/posters/{{ s.poster_file }}" alt="" loading="lazy">
+    {% else %}
+    <span class="row-thumb"></span>
+    {% endif %}
+    <span class="row-main">
+      <strong>{{ s.title }}</strong>
+      <span class="muted small">
+        {{ s.season_name }}{% if s.year %} · {{ s.year }}{% endif %} · {{ s.medium }}{% if s.quality != 'Not backed up' %} · {{ s.quality }}{% endif %}
+      </span>
+    </span>
+    <span class="row-meta">
+      {% if s.watched %}<span class="badge watched">Watched</span>{% endif %}
+      {% if s.personal_rating %}<span class="badge">{{ s.personal_rating }}/10</span>{% endif %}
+    </span>
+  </a>
+  {% endfor %}
+</section>
+{% elif shows %}
+<section class="grid">
+  {% for s in shows %}
+  <a class="card" href="/shows/{{ s.id }}">
+    {% if s.poster_file %}
+    <img src="/posters/{{ s.poster_file }}" alt="{{ s.title }} poster" loading="lazy">
+    {% else %}
+    <div class="poster-placeholder"><span>{{ s.title }}</span></div>
+    {% endif %}
+    <div class="card-body">
+      <strong>{{ s.title }}</strong>
+      <span class="muted">{{ s.season_name }}{% if s.year %} · {{ s.year }}{% endif %} · {{ s.medium }}{% if s.quality != 'Not backed up' %} · {{ s.quality }}{% endif %}</span>
+      <span class="badges">
+        {% if s.watched %}<span class="badge watched">Watched</span>{% endif %}
+        {% if s.personal_rating %}<span class="badge">{{ s.personal_rating }}/10</span>{% endif %}
+      </span>
+    </div>
+  </a>
+  {% endfor %}
+</section>
+{% else %}
+<section class="empty">
+  <p>No TV yet.</p>
+  <a class="button" href="/shows/add">Add your first box set</a>
+</section>
+{% endif %}
+{% endblock %}

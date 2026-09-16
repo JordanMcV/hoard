@@ -186,6 +186,191 @@ def delete(movie_id: int):
     return RedirectResponse("/", status_code=303)
 
 
+# Shows
+
+@app.get("/shows")
+def shows_index(request: Request, q: str = "", medium: str = "", quality: str = "",
+                watched: str = "", sort: str = "title", view: str = "grid",
+                msg: str = "", error: str = ""):
+    shows = db.list_shows(q=q, medium=medium, quality=quality, watched=watched, sort=sort)
+    return templates.TemplateResponse(
+        request,
+        "shows_index.html",
+        {
+            "shows": shows,
+            "stats": db.show_stats(),
+            "q": q,
+            "medium": medium,
+            "quality": quality,
+            "watched": watched,
+            "sort": sort,
+            "view": view,
+            "view_urls": _view_urls(request),
+            "msg": msg,
+            "error": error,
+            "section": "shows",
+        },
+    )
+
+
+@app.get("/shows/add")
+def shows_add_page(request: Request, q: str = ""):
+    results, error = [], None
+    if q and tmdb.enabled():
+        try:
+            results = tmdb.search_tv(q)
+        except httpx.HTTPError:
+            logger.error("[Shows] TMDB search failed", extra={"query": q}, exc_info=True)
+            error = "TMDB search failed. Check your API key or add the season manually."
+    return templates.TemplateResponse(
+        request,
+        "shows_add.html",
+        {
+            "q": q,
+            "results": results,
+            "tmdb_enabled": tmdb.enabled(),
+            "error": error,
+            "owned_ids": db.show_tmdb_ids(),
+            "section": "shows",
+        },
+    )
+
+
+@app.get("/shows/add/{tmdb_id}")
+def shows_seasons_page(request: Request, tmdb_id: int, q: str = ""):
+    try:
+        show = tmdb.fetch_show(tmdb_id)
+    except httpx.HTTPError:
+        logger.error("[Shows] TMDB series lookup failed", extra={"tmdb_id": tmdb_id}, exc_info=True)
+        return RedirectResponse("/shows/add?error=TMDB lookup failed.", status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "shows_seasons.html",
+        {
+            "show": show,
+            "q": q,
+            "owned_seasons": db.show_seasons_owned(tmdb_id),
+            "section": "shows",
+        },
+    )
+
+
+@app.post("/shows/add")
+def shows_add_from_tmdb(
+    tmdb_id: int = Form(...),
+    seasons: list[int] = Form(default=[]),
+    medium: str = Form("Blu-ray"),
+    quality: str = Form("Not backed up"),
+):
+    """Add every season ticked on the season picker, skipping ones already held."""
+    owned = db.show_seasons_owned(tmdb_id)
+    added = []
+    for season_number in seasons:
+        if season_number in owned:
+            continue
+        details = tmdb.fetch_season_details(tmdb_id, season_number)
+        added.append(db.add_show(medium=medium, quality=quality, **details))
+    logger.info(
+        "[Shows] Added from TMDB",
+        extra={"tmdb_id": tmdb_id, "requested": len(seasons), "added": len(added)},
+    )
+    if len(added) == 1:
+        return RedirectResponse(f"/shows/{added[0]}", status_code=303)
+    if not added:
+        return RedirectResponse("/shows?msg=Nothing to add; you hold those seasons already.",
+                                status_code=303)
+    return RedirectResponse(f"/shows?msg={len(added)} seasons added.", status_code=303)
+
+
+@app.post("/shows/add-manual")
+def shows_add_manual(
+    title: str = Form(...),
+    season_number: int = Form(1),
+    season_name: str = Form(""),
+    year: int | None = Form(None),
+    medium: str = Form("Blu-ray"),
+    quality: str = Form("Not backed up"),
+    creator: str = Form(""),
+    notes: str = Form(""),
+):
+    show_id = db.add_show(
+        title=title.strip(),
+        season_number=season_number,
+        season_name=season_name.strip() or f"Season {season_number}",
+        year=year,
+        medium=medium,
+        quality=quality,
+        creator=creator.strip() or None,
+        notes=notes.strip() or None,
+    )
+    return RedirectResponse(f"/shows/{show_id}", status_code=303)
+
+
+@app.get("/random/show")
+def random_show():
+    show_id = db.random_show_id(unwatched_only=True)
+    if show_id is None:
+        return RedirectResponse("/shows?msg=Nothing unwatched to pick from.", status_code=303)
+    return RedirectResponse(f"/shows/{show_id}", status_code=303)
+
+
+@app.get("/export/shows.csv")
+def export_shows():
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["title", "season_number", "season_name", "year", "medium", "quality",
+                     "creator", "network", "episode_count", "genres", "watched", "rating",
+                     "location", "source", "notes", "added_at"])
+    for s in db.list_shows(sort="title"):
+        writer.writerow([s["title"], s["season_number"], s["season_name"], s["year"], s["medium"],
+                         s["quality"], s["creator"], s["network"], s["episode_count"], s["genres"],
+                         s["watched"], s["personal_rating"], s["location"], s["source"],
+                         s["notes"], s["added_at"]])
+    return Response(
+        buf.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=shows.csv"},
+    )
+
+
+@app.get("/shows/{show_id}")
+def show_detail(request: Request, show_id: int, saved: int = 0):
+    show = db.get_show(show_id)
+    if show is None:
+        return RedirectResponse("/shows", status_code=303)
+    return templates.TemplateResponse(
+        request, "shows_detail.html", {"show": show, "saved": saved, "section": "shows"}
+    )
+
+
+@app.post("/shows/{show_id}")
+def show_update(
+    show_id: int,
+    medium: str = Form("Blu-ray"),
+    quality: str = Form("Not backed up"),
+    watched: str = Form("0"),
+    personal_rating: int | None = Form(None),
+    location: str = Form(""),
+    notes: str = Form(""),
+):
+    db.update_show(
+        show_id,
+        medium=medium,
+        quality=quality,
+        watched=1 if watched == "1" else 0,
+        personal_rating=personal_rating,
+        location=location.strip() or None,
+        notes=notes.strip() or None,
+    )
+    return RedirectResponse(f"/shows/{show_id}?saved=1", status_code=303)
+
+
+@app.post("/shows/{show_id}/delete")
+def show_delete(show_id: int):
+    db.delete_show(show_id)
+    return RedirectResponse("/shows", status_code=303)
+
+
 # Games
 
 @app.get("/games")

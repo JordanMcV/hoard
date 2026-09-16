@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ show.title }} - {{ show.season_name }}{% endblock %}
+{% block content %}
+<article class="detail">
+  <div class="detail-poster">
+    {% if show.poster_file %}
+    <img src="/posters/{{ show.poster_file }}" alt="{{ show.title }} poster">
+    {% else %}
+    <div class="poster-placeholder"><span>{{ show.title }}</span></div>
+    {% endif %}
+  </div>
+  <div class="detail-body">
+    <h1>{{ show.title }} {% if show.year %}<span class="muted">({{ show.year }})</span>{% endif %}</h1>
+    <p class="muted">
+      {{ show.season_name }}.
+      {% if show.episode_count %}{{ show.episode_count }} episodes.{% endif %}
+      {% if show.creator %}Created by {{ show.creator }}.{% endif %}
+      {% if show.network %}{{ show.network }}.{% endif %}
+      {% if show.genres %}{{ show.genres }}.{% endif %}
+    </p>
+    {% if show.overview %}<p>{{ show.overview }}</p>{% endif %}
+
+    {% if saved %}<p class="notice">Saved.</p>{% endif %}
+
+    <form method="post" action="/shows/{{ show.id }}" class="form">
+      <label>Medium
+        <select name="medium">
+          {% for m in mediums %}
+          <option value="{{ m }}" {% if show.medium == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Quality
+        <select name="quality">
+          {% for qu in qualities %}
+          <option value="{{ qu }}" {% if show.quality == qu %}selected{% endif %}>{{ qu }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="check">
+        <input type="hidden" name="watched" value="0">
+        <input type="checkbox" name="watched" value="1" {% if show.watched %}checked{% endif %}> Watched
+      </label>
+      <label>My rating (1-10)
+        <input name="personal_rating" type="number" min="1" max="10" value="{{ show.personal_rating or '' }}">
+      </label>
+      <label>Location
+        <select name="location">
+          <option value="">No location</option>
+          {% for loc in locations %}
+          <option value="{{ loc }}" {% if show.location == loc %}selected{% endif %}>{{ loc }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Notes <textarea name="notes" rows="4">{{ show.notes or '' }}</textarea></label>
+      <button type="submit">Save</button>
+    </form>
+
+    <form method="post" action="/shows/{{ show.id }}/delete" onsubmit="return confirm('Delete {{ show.title }} {{ show.season_name }} from your collection?')">
+      <button type="submit" class="danger">Delete</button>
+    </form>
+    <p class="muted small">
+      Added {{ show.added_at }} UTC{% if show.source %} · from {{ show.source }}{% endif %}
+    </p>
+  </div>
+</article>
+{% endblock %}
