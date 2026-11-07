@@ -198,7 +198,7 @@ input, select, textarea {
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  list-style-position: outside;
+  list-style-position: inside;
 }
 .pinned-section[open] > summary { margin-bottom: 0.75rem; }
 .pinned-section .card { background: var(--surface-2); }
