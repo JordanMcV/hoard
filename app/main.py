@@ -530,6 +530,8 @@ def sync_psn():
             status_code=303,
         )
     msg = f"PSN sync: {result['added']} added, {result['updated']} updated."
+    if result["removed"]:
+        msg += f" {result['removed']} duplicate or app row(s) removed."
     if result["covers_backfilled"]:
         msg += f" {result['covers_backfilled']} missing cover(s) retrieved."
     return RedirectResponse(f"/games?msg={msg}", status_code=303)
